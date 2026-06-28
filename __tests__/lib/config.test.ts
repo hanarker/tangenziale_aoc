@@ -35,12 +35,39 @@ describe('loadConfig', () => {
     expect(config.targetUrl).toBe('https://example.com')
   })
 
-  it('usa CRON_INTERVAL di default se non specificato', async () => {
+  it('usa CRON_INTERVAL di default se nessuna variabile di intervallo è specificata', async () => {
     process.env.OPENAI_API_KEY = 'sk-test-key'
     delete process.env.CRON_INTERVAL
+    delete process.env.UPDATE_INTERVAL_MINUTES
     const { loadConfig } = await import('@/lib/config')
     const config = loadConfig()
     expect(config.cronInterval).toBe('*/15 * * * *')
+  })
+
+  it('converte UPDATE_INTERVAL_MINUTES in espressione cron', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test-key'
+    process.env.UPDATE_INTERVAL_MINUTES = '30'
+    delete process.env.CRON_INTERVAL
+    const { loadConfig } = await import('@/lib/config')
+    const config = loadConfig()
+    expect(config.cronInterval).toBe('*/30 * * * *')
+  })
+
+  it('CRON_INTERVAL ha la precedenza su UPDATE_INTERVAL_MINUTES', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test-key'
+    process.env.UPDATE_INTERVAL_MINUTES = '30'
+    process.env.CRON_INTERVAL = '0 */2 * * *'
+    const { loadConfig } = await import('@/lib/config')
+    const config = loadConfig()
+    expect(config.cronInterval).toBe('0 */2 * * *')
+  })
+
+  it('lancia un errore se UPDATE_INTERVAL_MINUTES non è un numero intero positivo', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test-key'
+    process.env.UPDATE_INTERVAL_MINUTES = 'abc'
+    delete process.env.CRON_INTERVAL
+    const { loadConfig } = await import('@/lib/config')
+    expect(() => loadConfig()).toThrow('UPDATE_INTERVAL_MINUTES')
   })
 
   it('lancia un errore se OPENAI_API_KEY manca', async () => {
