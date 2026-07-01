@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "update": "tsx scripts/update-state.ts",
-    "cron": "tsx scripts/cron.ts"
+    "update": "tsx --env-file=.env scripts/update-state.ts",
+    "cron": "tsx --env-file=.env scripts/cron.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

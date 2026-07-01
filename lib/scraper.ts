@@ -16,14 +16,14 @@ export async function scrapeAvvisi(url: string): Promise<string> {
   const html = await response.text()
   const $ = cheerio.load(html)
 
-  // La sezione può variare: proviamo più selettori comuni
+  // La sezione può variare: proviamo più selettori in ordine di specificità
   const selectors = [
+    '#AlertPopUp',
+    '#AlertArea',
     '.avviso-viaggiatori',
     '[class*="avviso"]',
     'section:has(h2:contains("Avviso"))',
-    'section:has(h2:contains("avviso"))',
     'div:has(h2:contains("Avviso"))',
-    '*:contains("Avviso ai Viaggiatori")',
   ]
 
   let testo = ''

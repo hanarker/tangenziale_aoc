@@ -1,6 +1,6 @@
 import { readState } from '@/lib/store'
 import { join } from 'path'
-import { TangenzialeMap } from '@/components/TangenzialeMap'
+import { MapViewSwitcher } from '@/components/MapViewSwitcher'
 import { Legend } from '@/components/Legend'
 import { StatusBar } from '@/components/StatusBar'
 
@@ -32,7 +32,7 @@ export default async function HomePage() {
       <section className="w-full mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         {state ? (
           <>
-            <TangenzialeMap state={state} />
+            <MapViewSwitcher state={state} />
             <StatusBar updatedAt={state.updatedAt} stale={state.stale} />
           </>
         ) : (
