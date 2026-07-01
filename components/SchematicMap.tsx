@@ -10,10 +10,10 @@ interface SchematicMapProps {
   direction: Direzione
 }
 
-const STATUS_COLOR: Record<Status, string> = {
-  verde: '#16a34a',
-  giallo: '#f59e0b',
-  rosso: '#dc2626',
+const STATUS_VAR: Record<Status, string> = {
+  verde: 'var(--status-verde)',
+  giallo: 'var(--status-giallo)',
+  rosso: 'var(--status-rosso)',
 }
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -27,7 +27,8 @@ const DIREZIONE_LABEL: Record<Direzione, string> = {
   pozzuoli: 'Pozzuoli',
 }
 
-const NAVY = '#1b2a5c'
+// Glifo scuro fisso: sempre leggibile sul giallo in entrambi i temi.
+const GIALLO_GLYPH = '#1b2a5c'
 
 // ── Layout ────────────────────────────────────────────────────────────────
 // Spaziatura uniforme (indipendente dalla geografia reale) con una lieve onda
@@ -66,7 +67,7 @@ function StatusIcon({ status, r }: { status: Status; r: number }) {
   if (status === 'giallo') {
     const h = r * 0.45
     return (
-      <g stroke={NAVY} strokeWidth={2.2} strokeLinecap="round">
+      <g stroke={GIALLO_GLYPH} strokeWidth={2.2} strokeLinecap="round">
         <line x1={-r * 0.28} y1={-h} x2={-r * 0.28} y2={h} />
         <line x1={r * 0.28} y1={-h} x2={r * 0.28} y2={h} />
       </g>
@@ -109,7 +110,7 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
         y1={above ? labelY + 5 : labelY - 5}
         x2={cx}
         y2={above ? cy - r - 3 : cy + r + 3}
-        stroke="#9ca3af"
+        stroke="var(--map-guide)"
         strokeWidth={1}
       />
       <text
@@ -118,8 +119,7 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
         textAnchor="middle"
         fontSize={isTerminus ? 12.5 : 11}
         fontWeight={800}
-        fill={isClosed ? '#dc2626' : NAVY}
-        fontFamily="system-ui, sans-serif"
+        fill={isClosed ? 'var(--status-rosso)' : 'var(--map-label)'}
         letterSpacing="0.3"
       >
         {svincolo.breve.toUpperCase()}
@@ -132,7 +132,7 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
           cy={cy}
           r={r + 3}
           fill="none"
-          stroke={STATUS_COLOR.rosso}
+          stroke="var(--status-rosso)"
           strokeWidth={2}
           className="schematic-pulse"
         />
@@ -142,8 +142,8 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
         cx={cx}
         cy={cy}
         r={r}
-        fill={STATUS_COLOR[status]}
-        stroke="#ffffff"
+        fill={STATUS_VAR[status]}
+        stroke="var(--node-ring)"
         strokeWidth={2.5}
         filter="url(#badgeShadow)"
         data-status={status}
@@ -184,16 +184,17 @@ export function SchematicMap({ state, direction }: SchematicMapProps) {
           height={SVG_H}
           className="min-w-full"
           role="presentation"
+          style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
           <defs>
             <filter id="badgeShadow" x="-60%" y="-60%" width="220%" height="220%">
-              <feDropShadow dx="0" dy="1.5" stdDeviation="1.3" floodColor={NAVY} floodOpacity="0.28" />
+              <feDropShadow dx="0" dy="1.5" stdDeviation="1.3" floodColor="#1b2a5c" floodOpacity="0.28" />
             </filter>
           </defs>
 
           {/* ── Sede stradale ───────────────────────────────────────────── */}
-          <path d={ROAD_PATH} fill="none" stroke={NAVY} strokeWidth={ROAD_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
-          <path d={ROAD_PATH} fill="none" stroke="#ffffff" strokeWidth={2} strokeDasharray="10 9" strokeLinecap="round" />
+          <path d={ROAD_PATH} fill="none" stroke="var(--road-navy)" strokeWidth={ROAD_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={ROAD_PATH} fill="none" stroke="var(--road-dash)" strokeWidth={2} strokeDasharray="10 9" strokeLinecap="round" />
 
           {/* ── Indicatore di senso di marcia ───────────────────────────── */}
           <text
@@ -202,8 +203,7 @@ export function SchematicMap({ state, direction }: SchematicMapProps) {
             textAnchor="middle"
             fontSize={11}
             fontWeight={700}
-            fill="#6b7280"
-            fontFamily="system-ui, sans-serif"
+            fill="var(--map-guide)"
             letterSpacing="0.4"
           >
             {arrowLabel}
