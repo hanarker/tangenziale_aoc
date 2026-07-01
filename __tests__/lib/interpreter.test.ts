@@ -89,4 +89,43 @@ describe('interpretAvvisi', () => {
 
     await expect(interpretAvvisi('sk-test', AVVISO_ESEMPIO)).rejects.toThrow()
   })
+
+  it('lancia un errore se la risposta contiene una direzione non valida (es. "autostrade")', async () => {
+    // Regressione: il sito sorgente usa "in direzione Autostrade" come sinonimo di
+    // "capodichino" — se il prompt non lo normalizza esplicitamente, l'LLM copia il
+    // testo originale e produce un valore fuori enum, facendo fallire l'update.
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              items: [{ id: 'fuorigrotta', direzione: 'autostrade', status: 'rosso' }],
+            }),
+          },
+        },
+      ],
+    })
+
+    await expect(interpretAvvisi('sk-test', AVVISO_ESEMPIO)).rejects.toThrow()
+  })
+
+  it('istruisce il modello a normalizzare i sinonimi di direzione presenti nel sito sorgente', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ items: [] }),
+          },
+        },
+      ],
+    })
+
+    await interpretAvvisi('sk-test', AVVISO_ESEMPIO)
+
+    const [{ messages }] = mockCreate.mock.calls[0]
+    const systemPrompt: string = messages[0].content
+    expect(systemPrompt).toMatch(/autostrade/i)
+    expect(systemPrompt).toMatch(/capodichino/i)
+    expect(systemPrompt).toMatch(/normalizz/i)
+  })
 })

@@ -21,6 +21,14 @@ per ciascuna direzione usando questi colori:
 - "giallo": rallentamenti o lavori in corso
 - "rosso": uscita/entrata chiusa
 
+Il campo "direzione" ammette SOLO due valori: "capodichino" oppure "pozzuoli".
+Il testo sorgente usa spesso sinonimi che NON vanno copiati letteralmente: normalizzali
+sempre a una delle due etichette valide.
+- "autostrade", "Napoli", "aeroporto" → "capodichino"
+- "mare", "Pozzuoli", "Cuma" → "pozzuoli"
+Se un avviso indica "entrambe le direzioni", genera due item separati (uno per
+"capodichino" e uno per "pozzuoli") con lo stesso stato e la stessa nota.
+
 Restituisci SOLO un JSON con questa struttura:
 {
   "items": [
