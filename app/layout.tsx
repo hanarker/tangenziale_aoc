@@ -1,8 +1,18 @@
 import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
+import { Barlow, Barlow_Condensed } from 'next/font/google'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-barlow',
+})
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-barlow-condensed',
+})
 
 export const metadata: Metadata = {
   title: 'Tangenziale di Napoli — Aperta o Chiusa?',
@@ -14,8 +24,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="it" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full bg-gray-50 text-gray-900 flex flex-col">
+    <html
+      lang="it"
+      className={`${barlow.variable} ${barlowCondensed.variable} h-full antialiased`}
+    >
+      <body className="min-h-full bg-background text-foreground flex flex-col font-sans">
         {children}
       </body>
     </html>
