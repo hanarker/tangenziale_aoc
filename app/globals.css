@@ -18,6 +18,7 @@
   --map-label: #1b2a5c;
   --map-guide: #9ca3af;
   --node-ring: #ffffff;
+  --shield-glyph: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -38,6 +39,7 @@
     --map-label: #c9d4f0;
     --map-guide: #5b6b85;
     --node-ring: #161f30;
+    --shield-glyph: #0f172a;
   }
 }
 

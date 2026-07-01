@@ -29,8 +29,7 @@ function ShieldLogo() {
         textAnchor="middle"
         fontSize="20"
         fontWeight="700"
-        fill="#ffffff"
-        style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+        style={{ fontFamily: 'var(--font-barlow-condensed)', fill: 'var(--shield-glyph)' }}
       >
         T
       </text>
