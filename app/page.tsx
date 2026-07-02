@@ -3,6 +3,10 @@ import { join } from 'path'
 import { MapViewSwitcher } from '@/components/MapViewSwitcher'
 import { Legend } from '@/components/Legend'
 import { StatusBar } from '@/components/StatusBar'
+import { EveningClosures } from '@/components/EveningClosures'
+import { InfoSections } from '@/components/InfoSections'
+import { AdSlot } from '@/components/AdSlot'
+import { ShieldLogo } from '@/components/ShieldLogo'
 
 const STATE_PATH = join(process.cwd(), 'data', 'state.json')
 
@@ -10,35 +14,10 @@ const STATE_PATH = join(process.cwd(), 'data', 'state.json')
 // aggiorna il file e la pagina mostra sempre l'ultimo snapshot.
 export const dynamic = 'force-dynamic'
 
-function ShieldLogo() {
-  return (
-    <svg
-      width="44"
-      height="48"
-      viewBox="0 0 44 48"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path
-        d="M22 2 L41 8 V24 C41 36 32 44 22 46 C12 44 3 36 3 24 V8 Z"
-        className="fill-primary"
-      />
-      <text
-        x="22"
-        y="31"
-        textAnchor="middle"
-        fontSize="20"
-        fontWeight="700"
-        style={{ fontFamily: 'var(--font-barlow-condensed)', fill: 'var(--shield-glyph)' }}
-      >
-        T
-      </text>
-    </svg>
-  )
-}
-
 export default async function HomePage() {
   const state = await readState(STATE_PATH)
+  // Istante condiviso da mappa e chiusure: pagina force-dynamic, fresco a ogni richiesta
+  const now = new Date()
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8 max-w-4xl mx-auto w-full">
@@ -59,11 +38,25 @@ export default async function HomePage() {
       <Legend />
 
       {/* Mappa */}
-      <section className="w-full mt-6 bg-surface rounded-lg border border-edge p-4">
+      <section
+        id="mappa"
+        className="w-full mt-6 scroll-mt-20 bg-surface rounded-lg border border-edge p-4"
+      >
+        <h2 className="flex items-center gap-2 mb-3 font-display text-xl font-bold uppercase tracking-wide text-foreground">
+          <span
+            aria-hidden="true"
+            className="inline-block w-2.5 h-2.5 rounded-full bg-green-600"
+          />
+          In tempo reale
+        </h2>
         {state ? (
           <>
             <MapViewSwitcher state={state} />
-            <StatusBar updatedAt={state.updatedAt} stale={state.stale} />
+            <StatusBar
+              updatedAt={state.updatedAt}
+              checkedAt={state.checkedAt}
+              stale={state.stale}
+            />
           </>
         ) : (
           <div className="text-center py-12 text-muted">
@@ -77,6 +70,18 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {/* Chiusure programmate per le prossime serate */}
+      <EveningClosures state={state} now={now} />
+
+      {/* Banner pubblicitario (segnaposto AdSense) */}
+      <AdSlot id="dopo-mappa" />
+
+      {/* Sezioni informative */}
+      <InfoSections />
+
+      {/* Banner pubblicitario (segnaposto AdSense) */}
+      <AdSlot id="pre-footer" />
 
       {/* Footer */}
       <footer className="mt-8 text-center text-xs text-muted">

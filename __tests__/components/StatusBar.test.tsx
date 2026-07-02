@@ -24,4 +24,31 @@ describe('StatusBar', () => {
     )
     expect(screen.queryByText(/non aggiornati|dati precedenti|stale/i)).not.toBeInTheDocument()
   })
+
+  it('mostra "Verificato" quando checkedAt è successivo a updatedAt', () => {
+    render(
+      <StatusBar
+        updatedAt="2026-06-28T23:00:00.000Z"
+        checkedAt="2026-07-02T18:00:00.000Z"
+        stale={false}
+      />
+    )
+    expect(screen.getByText(/verificat/i)).toBeInTheDocument()
+  })
+
+  it('non mostra "Verificato" quando checkedAt è assente', () => {
+    render(<StatusBar updatedAt="2026-06-28T23:00:00.000Z" stale={false} />)
+    expect(screen.queryByText(/verificat/i)).not.toBeInTheDocument()
+  })
+
+  it('non mostra "Verificato" quando checkedAt coincide con updatedAt', () => {
+    render(
+      <StatusBar
+        updatedAt="2026-06-28T23:00:00.000Z"
+        checkedAt="2026-06-28T23:00:00.000Z"
+        stale={false}
+      />
+    )
+    expect(screen.queryByText(/verificat/i)).not.toBeInTheDocument()
+  })
 })

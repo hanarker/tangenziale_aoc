@@ -5,16 +5,23 @@ import type { TangenzialeState } from '@/lib/types'
 
 const DEFAULT_PATH = join(process.cwd(), 'data', 'state.json')
 
+const ClosureWindowSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+})
+
 const SvincoloStateSchema = z.object({
   id: z.string(),
   direzione: z.enum(['capodichino', 'pozzuoli']),
   status: z.enum(['verde', 'giallo', 'rosso']),
   note: z.string().optional(),
+  windows: z.array(ClosureWindowSchema).optional(),
 })
 
 const TangenzialeStateSchema = z.object({
   items: z.array(SvincoloStateSchema),
   updatedAt: z.string(),
+  checkedAt: z.string().optional(),
   source: z.string(),
   stale: z.boolean(),
 })

@@ -5,7 +5,7 @@ export interface Config {
 }
 
 const DEFAULT_TARGET_URL = 'https://www.tangenzialedinapoli.it'
-const DEFAULT_INTERVAL_MINUTES = 15
+const DEFAULT_INTERVAL_MINUTES = 60
 
 /**
  * Carica e valida le variabili d'ambiente necessarie.
@@ -14,7 +14,7 @@ const DEFAULT_INTERVAL_MINUTES = 15
  * Precedenza per l'intervallo di aggiornamento:
  *   1. CRON_INTERVAL (espressione cron completa, per utenti avanzati)
  *   2. UPDATE_INTERVAL_MINUTES (numero intero di minuti, più semplice)
- *   3. Default: 15 minuti
+ *   3. Default: 60 minuti
  */
 export function loadConfig(): Config {
   const openaiApiKey = process.env.OPENAI_API_KEY

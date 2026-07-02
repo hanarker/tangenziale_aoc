@@ -41,7 +41,7 @@ describe('loadConfig', () => {
     delete process.env.UPDATE_INTERVAL_MINUTES
     const { loadConfig } = await import('@/lib/config')
     const config = loadConfig()
-    expect(config.cronInterval).toBe('*/15 * * * *')
+    expect(config.cronInterval).toBe('*/60 * * * *')
   })
 
   it('converte UPDATE_INTERVAL_MINUTES in espressione cron', async () => {

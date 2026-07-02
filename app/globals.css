@@ -19,6 +19,11 @@
   --map-guide: #9ca3af;
   --node-ring: #ffffff;
   --shield-glyph: #ffffff;
+
+  /* Token segnaletica (navbar a portale e pannelli sezione) */
+  --sign: #1b2a5c;
+  --sign-foreground: #ffffff;
+  --sign-line: rgba(255, 255, 255, 0.22);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,6 +45,10 @@
     --map-guide: #5b6b85;
     --node-ring: #161f30;
     --shield-glyph: #0f172a;
+
+    --sign: #16213c;
+    --sign-foreground: #e8edf8;
+    --sign-line: rgba(255, 255, 255, 0.16);
   }
 }
 
@@ -51,6 +60,9 @@
   --color-primary: var(--primary);
   --color-accent: var(--accent);
   --color-edge: var(--border);
+  --color-sign: var(--sign);
+  --color-sign-foreground: var(--sign-foreground);
+  --color-sign-line: var(--sign-line);
   --font-sans: var(--font-barlow);
   --font-display: var(--font-barlow-condensed);
 }
@@ -58,4 +70,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }

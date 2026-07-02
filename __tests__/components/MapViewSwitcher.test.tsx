@@ -34,7 +34,7 @@ describe('MapViewSwitcher', () => {
     expect(screen.getByRole('button', { name: /capodichino/i })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('mostra un solo nodo per svincolo, con lo stato della direzione selezionata', () => {
+  it('mostra un solo nodo per svincolo in ogni variante, con lo stato della direzione selezionata', () => {
     const { container } = render(<MapViewSwitcher state={stateExample} />)
     // Default: Capodichino → fuorigrotta è giallo
     expect(
@@ -46,6 +46,21 @@ describe('MapViewSwitcher', () => {
     expect(
       container.querySelector('[data-id="fuorigrotta"][data-dir="pozzuoli"]')
     ).toHaveAttribute('data-status', 'rosso')
-    expect(container.querySelectorAll('[data-dir]').length).toBe(13)
+    expect(
+      container.querySelectorAll('[data-orientation="horizontal"] [data-dir]').length
+    ).toBe(13)
+  })
+
+  it('renderizza la variante verticale per mobile e quella orizzontale per desktop', () => {
+    const { container } = render(<MapViewSwitcher state={stateExample} />)
+    const vertical = container.querySelector('[data-orientation="vertical"]')
+    const horizontal = container.querySelector('[data-orientation="horizontal"]')
+    expect(vertical).not.toBeNull()
+    expect(horizontal).not.toBeNull()
+    expect(vertical!.querySelectorAll('[data-dir]').length).toBe(13)
+    expect(horizontal!.querySelectorAll('[data-dir]').length).toBe(13)
+    // Visibilità responsive: verticale solo sotto sm, orizzontale da sm in su
+    expect(vertical!.closest('.sm\\:hidden')).not.toBeNull()
+    expect(horizontal!.closest('.hidden.sm\\:block')).not.toBeNull()
   })
 })

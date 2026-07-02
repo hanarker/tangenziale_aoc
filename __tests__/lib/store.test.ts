@@ -59,4 +59,47 @@ describe('store', () => {
     const read = await readState(TEST_PATH)
     expect(read?.stale).toBe(true)
   })
+
+  it('scrive e rilegge correttamente il campo windows opzionale', async () => {
+    const stateConFinestra: TangenzialeState = {
+      items: [
+        {
+          id: 'agnano',
+          direzione: 'capodichino',
+          status: 'rosso',
+          windows: [
+            { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-07-01T12:00:00.000Z',
+      source: 'Testo avviso di esempio',
+      stale: false,
+    }
+    const { writeState, readState } = await import('@/lib/store')
+    await writeState(stateConFinestra, TEST_PATH)
+    const read = await readState(TEST_PATH)
+    expect(read?.items[0].windows).toEqual([
+      { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+    ])
+  })
+
+  it('scrive e rilegge correttamente il campo checkedAt opzionale', async () => {
+    const stateConCheckedAt: TangenzialeState = {
+      ...stateOk,
+      checkedAt: '2026-07-02T18:00:00.000Z',
+    }
+    const { writeState, readState } = await import('@/lib/store')
+    await writeState(stateConCheckedAt, TEST_PATH)
+    const read = await readState(TEST_PATH)
+    expect(read?.checkedAt).toBe('2026-07-02T18:00:00.000Z')
+  })
+
+  it('readState legge correttamente uno state.json senza checkedAt (retro-compatibilità)', async () => {
+    writeFileSync(TEST_PATH, JSON.stringify(stateOk), 'utf-8')
+    const { readState } = await import('@/lib/store')
+    const read = await readState(TEST_PATH)
+    expect(read?.checkedAt).toBeUndefined()
+    expect(read?.items[0].id).toBe('fuorigrotta')
+  })
 })

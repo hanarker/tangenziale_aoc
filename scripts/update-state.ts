@@ -1,15 +1,12 @@
 /**
- * Script one-shot: scrape → interpreta → salva stato.
+ * Script one-shot: scrape → (se il testo è cambiato) interpreta → salva stato.
  * Eseguibile con: npm run update
  *
  * In caso di errore NON sovrascrive lo stato valido precedente;
  * marca invece lo stato come stale aggiornando il campo relativo.
  */
 import { loadConfig } from '@/lib/config'
-import { scrapeAvvisi } from '@/lib/scraper'
-import { interpretAvvisi } from '@/lib/interpreter'
-import { readState, writeState } from '@/lib/store'
-import type { TangenzialeState } from '@/lib/types'
+import { runUpdate } from '@/lib/update-runner'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
 
@@ -21,42 +18,18 @@ async function main() {
   const config = loadConfig()
 
   console.log(`[update] Scraping ${config.targetUrl}…`)
-  let testoAvvisi: string
-  try {
-    testoAvvisi = await scrapeAvvisi(config.targetUrl)
-  } catch (err) {
-    await markStale('Errore scraping', err)
-    return
-  }
+  const result = await runUpdate(config, STATE_PATH)
 
-  console.log('[update] Testo estratto, invio a LLM…')
-  let items: TangenzialeState['items']
-  try {
-    items = await interpretAvvisi(config.openaiApiKey, testoAvvisi)
-  } catch (err) {
-    await markStale('Errore LLM', err)
-    return
-  }
-
-  const newState: TangenzialeState = {
-    items,
-    updatedAt: new Date().toISOString(),
-    source: testoAvvisi,
-    stale: false,
-  }
-
-  await writeState(newState, STATE_PATH)
-  console.log(`[update] Stato aggiornato: ${items.length} svincoli non-verdi.`)
-}
-
-async function markStale(motivo: string, err: unknown) {
-  console.error(`[update] ${motivo}:`, err)
-  const existing = await readState(STATE_PATH)
-  if (existing) {
-    await writeState({ ...existing, stale: true }, STATE_PATH)
-    console.warn('[update] Stato precedente mantenuto, marcato come stale.')
-  } else {
-    console.warn('[update] Nessuno stato precedente disponibile.')
+  switch (result.outcome) {
+    case 'unchanged':
+      console.log('[update] Nessun cambiamento nel testo, LLM non richiamato.')
+      break
+    case 'updated':
+      console.log(`[update] Stato aggiornato: ${result.itemCount} svincoli non-verdi.`)
+      break
+    case 'error':
+      console.warn('[update] Aggiornamento fallito, stato precedente marcato come stale.')
+      break
   }
 }
 

@@ -2,25 +2,11 @@
 
 import { useState } from 'react'
 import { SchematicMap } from '@/components/SchematicMap'
+import { ArrowIcon } from '@/components/ArrowIcon'
 import type { TangenzialeState, Direzione } from '@/lib/types'
 
 interface MapViewSwitcherProps {
   state: TangenzialeState
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true" className="shrink-0">
-      <path
-        d="M1 6 H13 M9 2 L13 6 L9 10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
 }
 
 export function MapViewSwitcher({ state }: MapViewSwitcherProps) {
@@ -44,25 +30,32 @@ export function MapViewSwitcher({ state }: MapViewSwitcherProps) {
       >
         <button
           type="button"
-          aria-pressed={direction === 'capodichino'}
-          onClick={() => setDirection('capodichino')}
-          className={tabClass(direction === 'capodichino')}
+          aria-pressed={direction === 'pozzuoli'}
+          onClick={() => setDirection('pozzuoli')}
+          className={tabClass(direction === 'pozzuoli')}
         >
-          <ArrowIcon />
-          Capodichino
+          <ArrowIcon verso="sinistra" />
+          Pozzuoli
         </button>
         <button
           type="button"
-          aria-pressed={direction === 'pozzuoli'}
-          onClick={() => setDirection('pozzuoli')}
-          className={`${tabClass(direction === 'pozzuoli')} border-l border-edge`}
+          aria-pressed={direction === 'capodichino'}
+          onClick={() => setDirection('capodichino')}
+          className={`${tabClass(direction === 'capodichino')} border-l border-edge`}
         >
-          <ArrowIcon />
-          Pozzuoli
+          Capodichino
+          <ArrowIcon verso="destra" />
         </button>
       </div>
 
-      <SchematicMap state={state} direction={direction} />
+      {/* Mobile: sviluppo verticale stile linea metro, senza scroll orizzontale */}
+      <div className="sm:hidden">
+        <SchematicMap state={state} direction={direction} orientation="vertical" />
+      </div>
+      {/* Tablet/desktop: sviluppo orizzontale */}
+      <div className="hidden sm:block">
+        <SchematicMap state={state} direction={direction} orientation="horizontal" />
+      </div>
     </div>
   )
 }

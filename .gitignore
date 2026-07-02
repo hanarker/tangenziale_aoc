@@ -10,6 +10,11 @@
 !.yarn/releases
 !.yarn/versions
 
+#Claude
+AGENTS.MD
+CLAUDE.MD
+.claude
+
 # testing
 /coverage
 

@@ -128,4 +128,61 @@ describe('interpretAvvisi', () => {
     expect(systemPrompt).toMatch(/capodichino/i)
     expect(systemPrompt).toMatch(/normalizz/i)
   })
+
+  it('accetta e restituisce il campo windows con finestre temporali', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              items: [
+                {
+                  id: 'fuorigrotta',
+                  direzione: 'pozzuoli',
+                  status: 'rosso',
+                  note: 'Chiusa 23:00-06:00',
+                  windows: [
+                    { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+                  ],
+                },
+              ],
+            }),
+          },
+        },
+      ],
+    })
+
+    const items = await interpretAvvisi('sk-test', AVVISO_ESEMPIO)
+    expect(items[0].windows).toEqual([
+      { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+    ])
+  })
+
+  it('include nel prompt la data/ora corrente (parametro now) con offset Europe/Rome', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ items: [] }) } }],
+    })
+
+    // 1 luglio 2026, 12:00 UTC → estate, offset Europe/Rome = +02:00
+    const now = new Date('2026-07-01T12:00:00.000Z')
+    await interpretAvvisi('sk-test', AVVISO_ESEMPIO, now)
+
+    const [{ messages }] = mockCreate.mock.calls[0]
+    const systemPrompt: string = messages[0].content
+    expect(systemPrompt).toContain('2026-07-01T14:00:00+02:00')
+    expect(systemPrompt).toMatch(/windows/i)
+  })
+
+  it('usa la data corrente reale come default quando "now" non è passato', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ items: [] }) } }],
+    })
+
+    await interpretAvvisi('sk-test', AVVISO_ESEMPIO)
+
+    const [{ messages }] = mockCreate.mock.calls[0]
+    const systemPrompt: string = messages[0].content
+    const currentYear = new Date().getFullYear().toString()
+    expect(systemPrompt).toContain(currentYear)
+  })
 })

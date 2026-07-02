@@ -45,4 +45,53 @@ describe('SchematicMap', () => {
     // anello pulsante di evidenza per le chiuse
     expect(container.querySelector('.schematic-pulse')).not.toBeNull()
   })
+
+  it('default orizzontale: viewBox più largo che alto', () => {
+    const { container } = render(<SchematicMap state={stateExample} direction="pozzuoli" />)
+    expect(container.querySelector('[data-orientation="horizontal"]')).not.toBeNull()
+    const viewBox = container.querySelector('svg')?.getAttribute('viewBox') ?? ''
+    const [, , w, h] = viewBox.split(' ').map(Number)
+    expect(w).toBeGreaterThan(h)
+  })
+})
+
+describe('SchematicMap verticale (mobile)', () => {
+  it('renderizza tutti i 13 svincoli anche in verticale', () => {
+    const { container } = render(
+      <SchematicMap state={stateExample} direction="pozzuoli" orientation="vertical" />
+    )
+    expect(container.querySelectorAll('[data-dir="pozzuoli"]').length).toBe(13)
+  })
+
+  it('espone data-orientation e viewBox più alto che largo (sviluppo verticale)', () => {
+    const { container } = render(
+      <SchematicMap state={stateExample} direction="pozzuoli" orientation="vertical" />
+    )
+    expect(container.querySelector('[data-orientation="vertical"]')).not.toBeNull()
+    const viewBox = container.querySelector('svg')?.getAttribute('viewBox') ?? ''
+    const [, , w, h] = viewBox.split(' ').map(Number)
+    expect(h).toBeGreaterThan(w)
+  })
+
+  it('applica lo stato corretto ai nodi anche in verticale', () => {
+    const { container } = render(
+      <SchematicMap state={stateExample} direction="pozzuoli" orientation="vertical" />
+    )
+    const nodo = container.querySelector('[data-id="fuorigrotta"][data-dir="pozzuoli"]')
+    expect(nodo).toHaveAttribute('data-status', 'rosso')
+  })
+
+  it('mostra le etichette degli svincoli in verticale', () => {
+    render(
+      <SchematicMap state={stateExample} direction="capodichino" orientation="vertical" />
+    )
+    expect(screen.getAllByText(/fuorigrotta/i).length).toBeGreaterThan(0)
+  })
+
+  it('non usa un contenitore a scorrimento orizzontale', () => {
+    const { container } = render(
+      <SchematicMap state={stateExample} direction="pozzuoli" orientation="vertical" />
+    )
+    expect(container.querySelector('.overflow-x-auto')).toBeNull()
+  })
 })

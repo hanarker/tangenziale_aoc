@@ -1,6 +1,22 @@
 interface StatusBarProps {
   updatedAt: string
+  /**
+   * ISO timestamp dell'ultimo scraping riuscito, anche se il contenuto non è
+   * cambiato. Se assente o coincidente con `updatedAt`, non viene mostrato
+   * (evita di ripetere la stessa data due volte).
+   */
+  checkedAt?: string
   stale: boolean
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function WarningIcon() {
@@ -25,14 +41,9 @@ function WarningIcon() {
   )
 }
 
-export function StatusBar({ updatedAt, stale }: StatusBarProps) {
-  const formatted = new Date(updatedAt).toLocaleString('it-IT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+export function StatusBar({ updatedAt, checkedAt, stale }: StatusBarProps) {
+  const formatted = formatDateTime(updatedAt)
+  const showChecked = Boolean(checkedAt) && checkedAt !== updatedAt
 
   return (
     <div className="flex flex-col items-center gap-2 py-2">
@@ -40,6 +51,14 @@ export function StatusBar({ updatedAt, stale }: StatusBarProps) {
         Ultimo aggiornamento:{' '}
         <span className="tabular-nums font-medium">{formatted}</span>
       </p>
+      {showChecked && (
+        <p className="text-center text-xs text-muted">
+          Verificato:{' '}
+          <span className="tabular-nums font-medium">
+            {formatDateTime(checkedAt as string)}
+          </span>
+        </p>
+      )}
       {stale && (
         <p className="flex items-center gap-1.5 rounded-[3px] border border-amber-500/60 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
           <WarningIcon />

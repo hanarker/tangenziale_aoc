@@ -5,9 +5,16 @@ import { statusBySvincolo } from '@/lib/status-util'
 import { computeWavePoints, toSmoothPath } from '@/lib/schematic-layout'
 import type { TangenzialeState, Status, Direzione } from '@/lib/types'
 
+type Orientation = 'horizontal' | 'vertical'
+
 interface SchematicMapProps {
   state: TangenzialeState
   direction: Direzione
+  /**
+   * Sviluppo del tracciato: "horizontal" (default, desktop/tablet) oppure
+   * "vertical" stile linea metro, pensato per smartphone senza scroll.
+   */
+  orientation?: Orientation
 }
 
 const STATUS_VAR: Record<Status, string> = {
@@ -53,6 +60,27 @@ const LAST = N - 1
 const POINTS = [...computeWavePoints(N, { width: SVG_W, padX: PAD_X, midY: MID_Y, amplitude: AMPLITUDE, cycles: CYCLES })].reverse()
 const ROAD_PATH = toSmoothPath(POINTS)
 
+// ── Layout verticale (mobile) ─────────────────────────────────────────────
+// Stile linea metro: Capodichino in alto, Pozzuoli-Arco Felice in basso,
+// etichette alternate ai lati. Entra in un viewport da 375px senza scroll.
+const V_SVG_W = 380
+const V_PAD_Y = 46
+const V_GAP = 54
+const V_SVG_H = V_PAD_Y * 2 + (N - 1) * V_GAP
+const V_MID_X = V_SVG_W / 2
+const V_AMPLITUDE = 16
+const V_LABEL_GAP = 22
+
+// Si riusa il layout a onda scambiando gli assi: [posizione, onda] → [x, y]
+const V_POINTS: [number, number][] = computeWavePoints(N, {
+  width: V_SVG_H,
+  padX: V_PAD_Y,
+  midY: V_MID_X,
+  amplitude: V_AMPLITUDE,
+  cycles: CYCLES,
+}).map(([pos, wave]) => [wave, pos] as [number, number])
+const V_ROAD_PATH = toSmoothPath(V_POINTS)
+
 // ── Icone di stato (regola color-not-only: lo stato non è affidato solo al colore) ──
 function StatusIcon({ status, r }: { status: Status; r: number }) {
   if (status === 'rosso') {
@@ -93,30 +121,77 @@ interface WaypointProps {
   status: Status
   svincolo: (typeof SVINCOLI)[number]
   direction: Direzione
+  orientation: Orientation
+  /** Id del filtro ombra della variante corrente (univoco nel DOM) */
+  shadowId: string
 }
 
-function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps) {
+interface LabelGeometry {
+  x: number
+  y: number
+  textAnchor: 'middle' | 'start' | 'end'
+  guide: { x1: number; y1: number; x2: number; y2: number }
+}
+
+/** Etichetta sopra/sotto (orizzontale) oppure a lato alternato (verticale) */
+function labelGeometry(
+  orientation: Orientation,
+  index: number,
+  cx: number,
+  cy: number,
+  r: number
+): LabelGeometry {
+  const first = index % 2 === 0
+  if (orientation === 'horizontal') {
+    const labelY = first ? cy - r - LABEL_GAP : cy + r + LABEL_GAP
+    return {
+      x: cx,
+      y: labelY,
+      textAnchor: 'middle',
+      guide: {
+        x1: cx,
+        y1: first ? labelY + 5 : labelY - 5,
+        x2: cx,
+        y2: first ? cy - r - 3 : cy + r + 3,
+      },
+    }
+  }
+  // Verticale: etichette alternate a sinistra/destra della linea
+  const labelX = first ? cx - r - V_LABEL_GAP : cx + r + V_LABEL_GAP
+  return {
+    x: labelX,
+    y: cy + 4,
+    textAnchor: first ? 'end' : 'start',
+    guide: {
+      x1: first ? labelX + 4 : labelX - 4,
+      y1: cy,
+      x2: first ? cx - r - 3 : cx + r + 3,
+      y2: cy,
+    },
+  }
+}
+
+function Waypoint({ index, cx, cy, status, svincolo, direction, orientation, shadowId }: WaypointProps) {
   const isTerminus = index === 0 || index === LAST
   const r = isTerminus ? TERMINUS_R : NODE_R
-  const above = index % 2 === 0
-  const labelY = above ? cy - r - LABEL_GAP : cy + r + LABEL_GAP
   const isClosed = status === 'rosso'
+  const label = labelGeometry(orientation, index, cx, cy, r)
 
   return (
     <g>
       {/* Linea guida etichetta */}
       <line
-        x1={cx}
-        y1={above ? labelY + 5 : labelY - 5}
-        x2={cx}
-        y2={above ? cy - r - 3 : cy + r + 3}
+        x1={label.guide.x1}
+        y1={label.guide.y1}
+        x2={label.guide.x2}
+        y2={label.guide.y2}
         stroke="var(--map-guide)"
         strokeWidth={1}
       />
       <text
-        x={cx}
-        y={labelY}
-        textAnchor="middle"
+        x={label.x}
+        y={label.y}
+        textAnchor={label.textAnchor}
         fontSize={isTerminus ? 12.5 : 11}
         fontWeight={800}
         fill={isClosed ? 'var(--status-rosso)' : 'var(--map-label)'}
@@ -145,7 +220,7 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
         fill={STATUS_VAR[status]}
         stroke="var(--node-ring)"
         strokeWidth={2.5}
-        filter="url(#badgeShadow)"
+        filter={`url(#${shadowId})`}
         data-status={status}
         data-id={svincolo.id}
         data-dir={direction}
@@ -159,13 +234,89 @@ function Waypoint({ index, cx, cy, status, svincolo, direction }: WaypointProps)
   )
 }
 
-export function SchematicMap({ state, direction }: SchematicMapProps) {
+export function SchematicMap({
+  state,
+  direction,
+  orientation = 'horizontal',
+}: SchematicMapProps) {
   const statusMap = statusBySvincolo(state)
-  const arrowLabel =
-    direction === 'capodichino' ? 'Direzione Capodichino →' : '← Direzione Pozzuoli'
+  const isVertical = orientation === 'vertical'
+
+  // Verticale: Capodichino in alto → si viaggia "in su" verso Capodichino
+  const arrowLabel = isVertical
+    ? direction === 'capodichino'
+      ? '↑ Direzione Capodichino'
+      : '↓ Direzione Pozzuoli'
+    : direction === 'capodichino'
+      ? 'Direzione Capodichino →'
+      : '← Direzione Pozzuoli'
+
+  const points = isVertical ? V_POINTS : POINTS
+  const roadPath = isVertical ? V_ROAD_PATH : ROAD_PATH
+  const svgW = isVertical ? V_SVG_W : SVG_W
+  const svgH = isVertical ? V_SVG_H : SVG_H
+  // Id univoco per variante: entrambe possono coesistere nel DOM (visibilità responsive)
+  const shadowId = `badgeShadow-${orientation}`
+
+  const svg = (
+    <svg
+      viewBox={`0 0 ${svgW} ${svgH}`}
+      {...(isVertical ? {} : { width: SVG_W, height: SVG_H })}
+      className={isVertical ? 'w-full h-auto' : 'min-w-full'}
+      role="presentation"
+      style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+    >
+      <defs>
+        <filter id={shadowId} x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.3" floodColor="#1b2a5c" floodOpacity="0.28" />
+        </filter>
+      </defs>
+
+      {/* ── Sede stradale ───────────────────────────────────────────── */}
+      <path d={roadPath} fill="none" stroke="var(--road-navy)" strokeWidth={ROAD_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={roadPath} fill="none" stroke="var(--road-dash)" strokeWidth={2} strokeDasharray="10 9" strokeLinecap="round" />
+
+      {/* ── Indicatore di senso di marcia ───────────────────────────── */}
+      <text
+        x={svgW / 2}
+        y={svgH - (isVertical ? 8 : 12)}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={700}
+        fill="var(--map-guide)"
+        letterSpacing="0.4"
+      >
+        {arrowLabel}
+      </text>
+
+      {/* ── Nodi ─────────────────────────────────────────────────────── */}
+      {SVINCOLI.map((sv, i) => {
+        const [cx, cy] = points[i]
+        const info = statusMap.get(sv.id)
+        const status = (direction === 'pozzuoli' ? info?.pozzuoli : info?.capodichino) ?? 'verde'
+        return (
+          <Waypoint
+            key={sv.id}
+            index={i}
+            cx={cx}
+            cy={cy}
+            status={status}
+            svincolo={sv}
+            direction={direction}
+            orientation={orientation}
+            shadowId={shadowId}
+          />
+        )
+      })}
+    </svg>
+  )
 
   return (
-    <div className="w-full" aria-label={`Mappa stilizzata della Tangenziale — direzione ${DIREZIONE_LABEL[direction]}`}>
+    <div
+      className="w-full"
+      data-orientation={orientation}
+      aria-label={`Mappa stilizzata della Tangenziale — direzione ${DIREZIONE_LABEL[direction]}`}
+    >
       <style>{`
         @keyframes schematic-pulse-ring {
           0%   { r: ${NODE_R + 3}; opacity: 0.55; }
@@ -177,57 +328,7 @@ export function SchematicMap({ state, direction }: SchematicMapProps) {
         }
       `}</style>
 
-      <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          width={SVG_W}
-          height={SVG_H}
-          className="min-w-full"
-          role="presentation"
-          style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-        >
-          <defs>
-            <filter id="badgeShadow" x="-60%" y="-60%" width="220%" height="220%">
-              <feDropShadow dx="0" dy="1.5" stdDeviation="1.3" floodColor="#1b2a5c" floodOpacity="0.28" />
-            </filter>
-          </defs>
-
-          {/* ── Sede stradale ───────────────────────────────────────────── */}
-          <path d={ROAD_PATH} fill="none" stroke="var(--road-navy)" strokeWidth={ROAD_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
-          <path d={ROAD_PATH} fill="none" stroke="var(--road-dash)" strokeWidth={2} strokeDasharray="10 9" strokeLinecap="round" />
-
-          {/* ── Indicatore di senso di marcia ───────────────────────────── */}
-          <text
-            x={SVG_W / 2}
-            y={SVG_H - 12}
-            textAnchor="middle"
-            fontSize={11}
-            fontWeight={700}
-            fill="var(--map-guide)"
-            letterSpacing="0.4"
-          >
-            {arrowLabel}
-          </text>
-
-          {/* ── Nodi ─────────────────────────────────────────────────────── */}
-          {SVINCOLI.map((sv, i) => {
-            const [cx, cy] = POINTS[i]
-            const info = statusMap.get(sv.id)
-            const status = (direction === 'pozzuoli' ? info?.pozzuoli : info?.capodichino) ?? 'verde'
-            return (
-              <Waypoint
-                key={sv.id}
-                index={i}
-                cx={cx}
-                cy={cy}
-                status={status}
-                svincolo={sv}
-                direction={direction}
-              />
-            )
-          })}
-        </svg>
-      </div>
+      {isVertical ? svg : <div className="overflow-x-auto">{svg}</div>}
     </div>
   )
 }
