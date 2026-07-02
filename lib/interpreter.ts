@@ -78,10 +78,21 @@ Molte chiusure sono PROGRAMMATE solo in specifiche fasce orarie e date (es. "dal
 Per ogni chiusura con orario/data specifici, DEVI calcolare le finestre temporali reali
 in cui è attiva e restituirle nel campo "windows" come coppie "from"/"to" in formato ISO
 8601 con offset Europe/Rome (es. "2026-06-30T23:00:00+02:00"). Usa la data corrente sopra
-per risolvere riferimenti relativi ("il giorno successivo", mese/anno impliciti). Se
-l'avviso cita più giorni (es. "dei giorni 1 e 2 luglio"), genera una finestra per
-ciascuna notte. Se una chiusura NON ha un orario/data specifico (es. lavori permanenti
-o divieti senza fascia oraria), ometti il campo "windows" (sempre attiva).
+per risolvere riferimenti relativi ("il giorno successivo", mese/anno impliciti).
+ATTENZIONE al caso "ore 24,00" (equivalente a "ore 24:00", "le ore 24", "mezzanotte del
+giorno X"): in italiano indica la mezzanotte di FINE della giornata X, cioè lo STESSO
+istante di "ore 00,00 del giorno X+1" — NON coincide con "ore 00,00 del giorno X" (un
+giorno PRIMA, errore comune da evitare). Esempio: "dalle ore 24,00 del giorno 3 luglio
+alle ore 6,00 del giorno successivo" → {"from": "2026-07-04T00:00:00+02:00", "to":
+"2026-07-04T06:00:00+02:00"} (la notte è quella TRA IL 3 E IL 4 LUGLIO, non tra il 2 e
+il 3). Se l'avviso cita più giorni o più clausole unite da virgole/"e" (es. "dalle ore
+23,00 dei giorni 30 giugno e 1 e 2 luglio ... e dalle ore 24,00 del giorno 3 luglio
+..."), DEVI generare UNA finestra per CIASCUNA data/clausola citata, SENZA OMETTERNE
+NESSUNA, anche quando l'orario di inizio cambia da una clausola all'altra (es. alcune
+notti iniziano alle 23,00 e una notte specifica alle 24,00): applica a ogni clausola il
+proprio orario di inizio, non estendere un solo orario a tutte le date della frase. Se
+una chiusura NON ha un orario/data specifico (es. lavori permanenti o divieti senza
+fascia oraria), ometti il campo "windows" (sempre attiva).
 
 Restituisci SOLO un JSON con questa struttura:
 {
@@ -112,7 +123,7 @@ export async function interpretAvvisi(
   const client = new OpenAI({ apiKey })
 
   const completion = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: buildSystemPrompt(now) },
       { role: 'user', content: `Avvisi da classificare:\n\n${testoAvvisi}` },

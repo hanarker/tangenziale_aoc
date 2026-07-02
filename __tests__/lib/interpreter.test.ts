@@ -129,6 +129,39 @@ describe('interpretAvvisi', () => {
     expect(systemPrompt).toMatch(/normalizz/i)
   })
 
+  it('istruisce il modello sul caso "ore 24,00 del giorno X" come mezzanotte di fine giornata (non giorno X)', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ items: [] }) } }],
+    })
+
+    await interpretAvvisi('sk-test', AVVISO_ESEMPIO)
+
+    const [{ messages }] = mockCreate.mock.calls[0]
+    const systemPrompt: string = messages[0].content
+    expect(systemPrompt).toMatch(/ore 24,00/)
+    expect(systemPrompt).toMatch(/mezzanotte/i)
+    // Regressione diretta del bug osservato su "capodichino": l'esempio deve
+    // mostrare lo shift al giorno successivo (X+1), non il giorno X.
+    expect(systemPrompt).toContain('2026-07-04T00:00:00+02:00')
+    expect(systemPrompt).toContain('2026-07-04T06:00:00+02:00')
+  })
+
+  it('istruisce il modello a enumerare tutte le clausole/date di una frase composta senza ometterne nessuna', async () => {
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ items: [] }) } }],
+    })
+
+    await interpretAvvisi('sk-test', AVVISO_ESEMPIO)
+
+    const [{ messages }] = mockCreate.mock.calls[0]
+    const systemPrompt: string = messages[0].content
+    // Regressione diretta del bug osservato su "camaldoli": la clausola
+    // "24,00 del giorno 3 luglio" veniva omessa insieme ad altre a "23,00".
+    expect(systemPrompt).toMatch(/SENZA\s+OMETTERNE\s+NESSUNA/)
+    expect(systemPrompt).toMatch(/clausola/i)
+    expect(systemPrompt).toMatch(/orario di inizio/i)
+  })
+
   it('accetta e restituisce il campo windows con finestre temporali', async () => {
     mockCreate.mockResolvedValueOnce({
       choices: [

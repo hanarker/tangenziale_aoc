@@ -20,7 +20,7 @@ Lo stato è persistito su **Upstash Redis** (non più file locale): servono anch
 scripts/{update-state,cron}.ts / app/api/cron/update (Vercel Cron) → lib/update-runner.ts (pipeline condivisa)
   → lib/scraper.ts    scarica e estrae il testo avvisi (cheerio, whitespace normalizzato)
   → change-detection  se il testo === state.source esistente: LLM SALTATO, aggiorna solo checkedAt
-  → lib/interpreter.ts LLM (gpt-4o-mini, temp 0) classifica svincoli + estrae finestre orarie
+  → lib/interpreter.ts LLM (gpt-4o, temp 0) classifica svincoli + estrae finestre orarie
   → lib/store.ts      valida (zod) e scrive su Redis (chiave DEFAULT_STATE_KEY)
 app/page.tsx (force-dynamic) → readState → MapViewSwitcher/SchematicMap + EveningClosures
 ```
@@ -49,6 +49,6 @@ app/page.tsx (force-dynamic) → readState → MapViewSwitcher/SchematicMap + Ev
 ## Gotchas
 - `SchematicMap` ha due orientamenti: `horizontal` (desktop) e `vertical` (mobile, stile metro); `MapViewSwitcher` li renderizza entrambi con visibilità responsive (`sm:hidden`/`hidden sm:block`) — un'asserzione sui nodi va scopata con `[data-orientation=...]`. Id SVG (filtri) univoci per variante.
 - Il sito sorgente scrive "in direzione Autostrade/mare" come sinonimi: il prompt LLM li normalizza a `capodichino`/`pozzuoli` (enum rigido, zod fallisce su valori fuori enum).
-- Edge case LLM noto: "dalle ore 24,00 del giorno X" a volte codificato come `X T00:00` invece del giorno dopo.
+- Edge case LLM noto ("dalle ore 24,00 del giorno X" = mezzanotte di fine giornata X, cioè `X+1 T00:00`): il prompt di `lib/interpreter.ts` istruisce esplicitamente su questo caso ed enumera ogni clausola di frasi composte senza ometterne. Verificato che `gpt-4o-mini` non segue affidabilmente questa istruzione (produce ancora `X T00:00`); `gpt-4o` invece la applica correttamente — per questo il modello è `gpt-4o`, non `-mini`.
 - Test noto fallito pre-esistente: `__tests__/components/InfoSections.test.tsx` si aspetta un heading "caselli fuori servizio" che il componente non ha (test da correggere, non correlato alle feature).
 - Lo stato vive solo su Redis (nessun file locale da rigenerare): `npm run update` scrive sulla stessa chiave letta da `app/page.tsx`, quindi richiede le credenziali Redis nell'ambiente in cui gira (oltre a `OPENAI_API_KEY`).
