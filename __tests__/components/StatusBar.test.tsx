@@ -1,8 +1,22 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { StatusBar } from '@/components/StatusBar'
 
 describe('StatusBar', () => {
+  const ORIGINAL_TZ = process.env.TZ
+
+  afterEach(() => {
+    process.env.TZ = ORIGINAL_TZ
+  })
+
+  it('mostra l\'orario in Europe/Rome anche se il server gira in UTC (es. Vercel)', () => {
+    process.env.TZ = 'UTC'
+    // 21:49 UTC = 23:49 ora italiana (CEST, UTC+2) — non deve mostrare "21:49"
+    render(<StatusBar updatedAt="2026-07-02T21:49:33.678Z" stale={false} />)
+    expect(screen.getByText(/23:49/)).toBeInTheDocument()
+    expect(screen.queryByText(/21:49/)).not.toBeInTheDocument()
+  })
+
   it('mostra l\'orario dell\'ultimo aggiornamento', () => {
     render(
       <StatusBar updatedAt="2026-06-28T23:00:00.000Z" stale={false} />
