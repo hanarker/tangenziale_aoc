@@ -13,16 +13,23 @@ Sito Next.js (App Router, Tailwind 4) che mostra in tempo reale lo stato delle u
 
 ## Setup
 `.env` obbligatorio con `OPENAI_API_KEY`. Opzionali: `TARGET_URL`, `UPDATE_INTERVAL_MINUTES` (default 60), `CRON_INTERVAL` (override cron completo). Vedi `.env.example`.
+Lo stato è persistito su **Upstash Redis** (non più file locale): servono anche `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` (o gli equivalenti `KV_REST_API_URL`/`KV_REST_API_TOKEN` iniettati dal Marketplace Vercel — `Redis.fromEnv()` li legge entrambi). In locale: `vercel env pull .env.local` dopo aver collegato il progetto.
 
 ## Architettura (pipeline dati)
 ```
-scripts/{update-state,cron}.ts → lib/update-runner.ts (pipeline condivisa)
+scripts/{update-state,cron}.ts / app/api/cron/update (Vercel Cron) → lib/update-runner.ts (pipeline condivisa)
   → lib/scraper.ts    scarica e estrae il testo avvisi (cheerio, whitespace normalizzato)
   → change-detection  se il testo === state.source esistente: LLM SALTATO, aggiorna solo checkedAt
   → lib/interpreter.ts LLM (gpt-4o-mini, temp 0) classifica svincoli + estrae finestre orarie
-  → lib/store.ts      valida (zod) e scrive data/state.json
+  → lib/store.ts      valida (zod) e scrive su Redis (chiave DEFAULT_STATE_KEY)
 app/page.tsx (force-dynamic) → readState → MapViewSwitcher/SchematicMap + EveningClosures
 ```
+
+## Deploy su Vercel
+- Storage: integrazione Marketplace **Upstash for Redis** (`upstash/upstash-kv`) collegata al progetto — provisiona `KV_*`/`REDIS_URL` su tutti gli ambienti.
+- Cron: `vercel.json` definisce `/api/cron/update`, protetto da header `Authorization: Bearer $CRON_SECRET` (env var da impostare su Vercel, non presente in `.env.example` per non finire in git).
+- **Piano Hobby**: i Cron Jobs sono limitati a **1 esecuzione al giorno** (niente orario). Lo schedule attuale (`0 4 * * *`) è un compromesso temporaneo; per tornare a un aggiornamento realmente orario serve Vercel Pro oppure uno scheduler esterno (es. cron-job.org, GitHub Actions) che chiami l'endpoint ogni ora.
+- I Vercel Cron Jobs girano **solo sui deployment Production**, mai su Preview.
 
 ## Modello dati (lib/types.ts)
 - `state.items` contiene SOLO svincoli non-verdi; assente = verde (default ovunque).
@@ -44,4 +51,4 @@ app/page.tsx (force-dynamic) → readState → MapViewSwitcher/SchematicMap + Ev
 - Il sito sorgente scrive "in direzione Autostrade/mare" come sinonimi: il prompt LLM li normalizza a `capodichino`/`pozzuoli` (enum rigido, zod fallisce su valori fuori enum).
 - Edge case LLM noto: "dalle ore 24,00 del giorno X" a volte codificato come `X T00:00` invece del giorno dopo.
 - Test noto fallito pre-esistente: `__tests__/components/InfoSections.test.tsx` si aspetta un heading "caselli fuori servizio" che il componente non ha (test da correggere, non correlato alle feature).
-- `data/state.json` è gitignorato (dato runtime); rigenerarlo con `npm run update`.
+- Lo stato vive solo su Redis (nessun file locale da rigenerare): `npm run update` scrive sulla stessa chiave letta da `app/page.tsx`, quindi richiede le credenziali Redis nell'ambiente in cui gira (oltre a `OPENAI_API_KEY`).

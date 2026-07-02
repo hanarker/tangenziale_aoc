@@ -1,9 +1,8 @@
-import { readFile, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { Redis } from '@upstash/redis'
 import { z } from 'zod'
 import type { TangenzialeState } from '@/lib/types'
 
-const DEFAULT_PATH = join(process.cwd(), 'data', 'state.json')
+export const DEFAULT_STATE_KEY = 'tangenziale:state'
 
 const ClosureWindowSchema = z.object({
   from: z.string(),
@@ -26,37 +25,38 @@ const TangenzialeStateSchema = z.object({
   stale: z.boolean(),
 })
 
-/**
- * Legge lo stato dal file JSON. Restituisce null se il file non esiste.
- */
-export async function readState(
-  filePath = DEFAULT_PATH
-): Promise<TangenzialeState | null> {
-  try {
-    const raw = await readFile(filePath, 'utf-8')
-    const parsed = JSON.parse(raw)
-    return TangenzialeStateSchema.parse(parsed) as TangenzialeState
-  } catch (err: unknown) {
-    if (isNodeError(err) && err.code === 'ENOENT') {
-      return null
-    }
-    return null
+let redisClient: Redis | null = null
+
+function getRedis(): Redis {
+  if (!redisClient) {
+    redisClient = Redis.fromEnv()
   }
+  return redisClient
 }
 
 /**
- * Scrive lo stato su file JSON dopo aver validato i dati con zod.
+ * Legge lo stato da Redis (Upstash). Restituisce null se la chiave non esiste
+ * o se il valore salvato non rispetta più lo schema atteso.
+ */
+export async function readState(
+  key: string = DEFAULT_STATE_KEY
+): Promise<TangenzialeState | null> {
+  const raw = await getRedis().get<unknown>(key)
+  if (raw == null) return null
+
+  const parsed = TangenzialeStateSchema.safeParse(raw)
+  return parsed.success ? (parsed.data as TangenzialeState) : null
+}
+
+/**
+ * Scrive lo stato su Redis dopo aver validato i dati con zod.
  * Lancia un errore (senza sovrascrivere) se i dati non sono validi.
  */
 export async function writeState(
   state: TangenzialeState,
-  filePath = DEFAULT_PATH
+  key: string = DEFAULT_STATE_KEY
 ): Promise<void> {
-  // Valida prima di toccare il file: fail fast
+  // Valida prima di toccare la chiave: fail fast
   TangenzialeStateSchema.parse(state)
-  await writeFile(filePath, JSON.stringify(state, null, 2), 'utf-8')
-}
-
-function isNodeError(err: unknown): err is NodeJS.ErrnoException {
-  return err instanceof Error && 'code' in err
+  await getRedis().set(key, state)
 }

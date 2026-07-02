@@ -1,5 +1,5 @@
 /**
- * Script one-shot: scrape → (se il testo è cambiato) interpreta → salva stato.
+ * Script one-shot: scrape → (se il testo è cambiato) interpreta → salva stato su Redis.
  * Eseguibile con: npm run update
  *
  * In caso di errore NON sovrascrive lo stato valido precedente;
@@ -7,18 +7,13 @@
  */
 import { loadConfig } from '@/lib/config'
 import { runUpdate } from '@/lib/update-runner'
-import { mkdirSync } from 'fs'
-import { join } from 'path'
-
-const STATE_PATH = join(process.cwd(), 'data', 'state.json')
+import { DEFAULT_STATE_KEY } from '@/lib/store'
 
 async function main() {
-  mkdirSync(join(process.cwd(), 'data'), { recursive: true })
-
   const config = loadConfig()
 
   console.log(`[update] Scraping ${config.targetUrl}…`)
-  const result = await runUpdate(config, STATE_PATH)
+  const result = await runUpdate(config, DEFAULT_STATE_KEY)
 
   switch (result.outcome) {
     case 'unchanged':

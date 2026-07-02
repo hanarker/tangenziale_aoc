@@ -11,19 +11,14 @@
 import cron from 'node-cron'
 import { loadConfig } from '@/lib/config'
 import { runUpdate } from '@/lib/update-runner'
-import { mkdirSync } from 'fs'
-import { join } from 'path'
-
-const STATE_PATH = join(process.cwd(), 'data', 'state.json')
+import { DEFAULT_STATE_KEY } from '@/lib/store'
 
 const config = loadConfig()
-
-mkdirSync(join(process.cwd(), 'data'), { recursive: true })
 
 async function updateState() {
   console.log(`[cron] ${new Date().toISOString()} — avvio scraping…`)
 
-  const result = await runUpdate(config, STATE_PATH)
+  const result = await runUpdate(config, DEFAULT_STATE_KEY)
 
   switch (result.outcome) {
     case 'unchanged':

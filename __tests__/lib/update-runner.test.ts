@@ -1,21 +1,31 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { existsSync, unlinkSync, mkdirSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Config } from '@/lib/config'
 import type { TangenzialeState } from '@/lib/types'
 
-const { mockScrapeAvvisi, mockInterpretAvvisi } = vi.hoisted(() => ({
+const { mockScrapeAvvisi, mockInterpretAvvisi, fakeRedisData } = vi.hoisted(() => ({
   mockScrapeAvvisi: vi.fn(),
   mockInterpretAvvisi: vi.fn(),
+  fakeRedisData: new Map<string, unknown>(),
 }))
 
 vi.mock('@/lib/scraper', () => ({ scrapeAvvisi: mockScrapeAvvisi }))
 vi.mock('@/lib/interpreter', () => ({ interpretAvvisi: mockInterpretAvvisi }))
+vi.mock('@upstash/redis', () => ({
+  Redis: {
+    fromEnv: () => ({
+      get: async (key: string) => (fakeRedisData.has(key) ? fakeRedisData.get(key) : null),
+      set: async (key: string, value: unknown) => {
+        fakeRedisData.set(key, value)
+        return 'OK'
+      },
+    }),
+  },
+}))
 
 import { runUpdate } from '@/lib/update-runner'
 import { readState } from '@/lib/store'
 
-const TEST_PATH = join(process.cwd(), 'data', 'test-update-runner-state.json')
+const TEST_KEY = 'test:update-runner:state'
 
 const config: Config = {
   openaiApiKey: 'sk-test',
@@ -33,27 +43,22 @@ const existingState: TangenzialeState = {
 
 describe('runUpdate', () => {
   beforeEach(() => {
-    mkdirSync(join(process.cwd(), 'data'), { recursive: true })
-    if (existsSync(TEST_PATH)) unlinkSync(TEST_PATH)
+    fakeRedisData.clear()
     mockScrapeAvvisi.mockReset()
     mockInterpretAvvisi.mockReset()
   })
 
-  afterEach(() => {
-    if (existsSync(TEST_PATH)) unlinkSync(TEST_PATH)
-  })
-
   it('non chiama interpretAvvisi se il testo è identico al precedente', async () => {
-    writeFileSync(TEST_PATH, JSON.stringify(existingState), 'utf-8')
+    fakeRedisData.set(TEST_KEY, existingState)
     mockScrapeAvvisi.mockResolvedValueOnce('Testo avvisi versione A')
 
     const now = new Date('2026-07-01T12:00:00.000Z')
-    const result = await runUpdate(config, TEST_PATH, now)
+    const result = await runUpdate(config, TEST_KEY, now)
 
     expect(result.outcome).toBe('unchanged')
     expect(mockInterpretAvvisi).not.toHaveBeenCalled()
 
-    const saved = await readState(TEST_PATH)
+    const saved = await readState(TEST_KEY)
     expect(saved?.updatedAt).toBe(existingState.updatedAt) // invariato
     expect(saved?.checkedAt).toBe(now.toISOString()) // aggiornato
     expect(saved?.items).toEqual(existingState.items)
@@ -61,14 +66,14 @@ describe('runUpdate', () => {
   })
 
   it('chiama interpretAvvisi e riscrive lo stato se il testo è cambiato', async () => {
-    writeFileSync(TEST_PATH, JSON.stringify(existingState), 'utf-8')
+    fakeRedisData.set(TEST_KEY, existingState)
     mockScrapeAvvisi.mockResolvedValueOnce('Testo avvisi versione B (cambiato)')
     mockInterpretAvvisi.mockResolvedValueOnce([
       { id: 'agnano', direzione: 'capodichino', status: 'rosso', note: 'Chiusa' },
     ])
 
     const now = new Date('2026-07-01T12:00:00.000Z')
-    const result = await runUpdate(config, TEST_PATH, now)
+    const result = await runUpdate(config, TEST_KEY, now)
 
     expect(result.outcome).toBe('updated')
     expect(mockInterpretAvvisi).toHaveBeenCalledWith(
@@ -77,7 +82,7 @@ describe('runUpdate', () => {
       now
     )
 
-    const saved = await readState(TEST_PATH)
+    const saved = await readState(TEST_KEY)
     expect(saved?.updatedAt).toBe(now.toISOString())
     expect(saved?.checkedAt).toBe(now.toISOString())
     expect(saved?.source).toBe('Testo avvisi versione B (cambiato)')
@@ -89,38 +94,38 @@ describe('runUpdate', () => {
     mockInterpretAvvisi.mockResolvedValueOnce([])
 
     const now = new Date('2026-07-01T12:00:00.000Z')
-    const result = await runUpdate(config, TEST_PATH, now)
+    const result = await runUpdate(config, TEST_KEY, now)
 
     expect(result.outcome).toBe('updated')
     expect(mockInterpretAvvisi).toHaveBeenCalledOnce()
   })
 
   it('marca lo stato come stale e non chiama interpretAvvisi se lo scraping fallisce', async () => {
-    writeFileSync(TEST_PATH, JSON.stringify(existingState), 'utf-8')
+    fakeRedisData.set(TEST_KEY, existingState)
     mockScrapeAvvisi.mockRejectedValueOnce(new Error('Errore HTTP 503'))
 
     const now = new Date('2026-07-01T12:00:00.000Z')
-    const result = await runUpdate(config, TEST_PATH, now)
+    const result = await runUpdate(config, TEST_KEY, now)
 
     expect(result.outcome).toBe('error')
     expect(mockInterpretAvvisi).not.toHaveBeenCalled()
 
-    const saved = await readState(TEST_PATH)
+    const saved = await readState(TEST_KEY)
     expect(saved?.stale).toBe(true)
     expect(saved?.items).toEqual(existingState.items) // stato precedente preservato
   })
 
   it('marca lo stato come stale se interpretAvvisi fallisce dopo un cambiamento di testo', async () => {
-    writeFileSync(TEST_PATH, JSON.stringify(existingState), 'utf-8')
+    fakeRedisData.set(TEST_KEY, existingState)
     mockScrapeAvvisi.mockResolvedValueOnce('Testo avvisi versione B (cambiato)')
     mockInterpretAvvisi.mockRejectedValueOnce(new Error('Errore LLM'))
 
     const now = new Date('2026-07-01T12:00:00.000Z')
-    const result = await runUpdate(config, TEST_PATH, now)
+    const result = await runUpdate(config, TEST_KEY, now)
 
     expect(result.outcome).toBe('error')
 
-    const saved = await readState(TEST_PATH)
+    const saved = await readState(TEST_KEY)
     expect(saved?.stale).toBe(true)
     expect(saved?.source).toBe(existingState.source) // stato precedente preservato, non sovrascritto
   })

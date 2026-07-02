@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { readState } from '@/lib/store'
-import { join } from 'path'
-
-const STATE_PATH = join(process.cwd(), 'data', 'state.json')
 
 export async function GET() {
-  const state = await readState(STATE_PATH)
+  const state = await readState()
   if (!state) {
     return NextResponse.json(
       { error: 'Dati non ancora disponibili. Eseguire: npm run update' },

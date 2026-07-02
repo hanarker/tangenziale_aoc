@@ -26,23 +26,23 @@ export interface UpdateResult {
  */
 export async function runUpdate(
   config: Config,
-  statePath: string,
+  stateKey: string,
   now: Date = new Date()
 ): Promise<UpdateResult> {
   let testoAvvisi: string
   try {
     testoAvvisi = await scrapeAvvisi(config.targetUrl)
   } catch (err) {
-    await markStale(statePath, 'Errore scraping', err)
+    await markStale(stateKey, 'Errore scraping', err)
     return { outcome: 'error' }
   }
 
-  const existing = await readState(statePath)
+  const existing = await readState(stateKey)
 
   if (existing && existing.source === testoAvvisi) {
     await writeState(
       { ...existing, checkedAt: now.toISOString(), stale: false },
-      statePath
+      stateKey
     )
     return { outcome: 'unchanged', itemCount: existing.items.length }
   }
@@ -51,7 +51,7 @@ export async function runUpdate(
   try {
     items = await interpretAvvisi(config.openaiApiKey, testoAvvisi, now)
   } catch (err) {
-    await markStale(statePath, 'Errore LLM', err)
+    await markStale(stateKey, 'Errore LLM', err)
     return { outcome: 'error' }
   }
 
@@ -63,18 +63,18 @@ export async function runUpdate(
     stale: false,
   }
 
-  await writeState(newState, statePath)
+  await writeState(newState, stateKey)
   return { outcome: 'updated', itemCount: items.length }
 }
 
 async function markStale(
-  statePath: string,
+  stateKey: string,
   motivo: string,
   err: unknown
 ): Promise<void> {
   console.error(`[update-runner] ${motivo}:`, err)
-  const existing = await readState(statePath)
+  const existing = await readState(stateKey)
   if (existing) {
-    await writeState({ ...existing, stale: true }, statePath)
+    await writeState({ ...existing, stale: true }, stateKey)
   }
 }

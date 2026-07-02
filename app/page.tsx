@@ -1,5 +1,4 @@
 import { readState } from '@/lib/store'
-import { join } from 'path'
 import { MapViewSwitcher } from '@/components/MapViewSwitcher'
 import { Legend } from '@/components/Legend'
 import { StatusBar } from '@/components/StatusBar'
@@ -8,14 +7,12 @@ import { InfoSections } from '@/components/InfoSections'
 import { AdSlot } from '@/components/AdSlot'
 import { ShieldLogo } from '@/components/ShieldLogo'
 
-const STATE_PATH = join(process.cwd(), 'data', 'state.json')
-
 // Rilegge i dati ad ogni richiesta (non cached), così il cron
-// aggiorna il file e la pagina mostra sempre l'ultimo snapshot.
+// aggiorna Redis e la pagina mostra sempre l'ultimo snapshot.
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const state = await readState(STATE_PATH)
+  const state = await readState()
   // Istante condiviso da mappa e chiusure: pagina force-dynamic, fresco a ogni richiesta
   const now = new Date()
 
