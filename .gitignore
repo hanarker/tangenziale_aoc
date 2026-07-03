@@ -11,11 +11,11 @@
 !.yarn/versions
 
 #Claude
-AGENTS.MD
-CLAUDE.MD
-.claude
-.superpowers
-/docs
+AGENTS.md
+CLAUDE.md
+.claude/
+.superpowers/
+/docs/
 
 # testing
 /coverage

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { readState } from '@/lib/store'
 import { MapViewSwitcher } from '@/components/MapViewSwitcher'
 import { Legend } from '@/components/Legend'
@@ -82,16 +83,23 @@ export default async function HomePage() {
 
       {/* Footer */}
       <footer className="mt-8 text-center text-xs text-muted">
-        Dati estratti da{' '}
-        <a
-          href="https://www.tangenzialedinapoli.it"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-accent"
-        >
-          tangenzialedinapoli.it
-        </a>{' '}
-        e interpretati con OpenAI
+        <p>
+          Dati estratti da{' '}
+          <a
+            href="https://www.tangenzialedinapoli.it"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-accent"
+          >
+            tangenzialedinapoli.it
+          </a>{' '}
+          e interpretati con OpenAI
+        </p>
+        <p className="mt-1">
+          <Link href="/privacy" className="underline hover:text-accent">
+            Privacy e Cookie
+          </Link>
+        </p>
       </footer>
     </main>
   )
