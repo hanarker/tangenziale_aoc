@@ -48,8 +48,9 @@ export async function runUpdate(
   }
 
   let items: TangenzialeState['items']
+  let tratti: TangenzialeState['tratti']
   try {
-    items = await interpretAvvisi(config.openaiApiKey, testoAvvisi, now)
+    ;({ items, tratti } = await interpretAvvisi(config.openaiApiKey, testoAvvisi, now))
   } catch (err) {
     await markStale(stateKey, 'Errore LLM', err)
     return { outcome: 'error' }
@@ -57,6 +58,7 @@ export async function runUpdate(
 
   const newState: TangenzialeState = {
     items,
+    tratti,
     updatedAt: now.toISOString(),
     checkedAt: now.toISOString(),
     source: testoAvvisi,

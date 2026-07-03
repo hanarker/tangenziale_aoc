@@ -1,7 +1,7 @@
 const VOCI = [
   { chip: 'bg-green-600', simbolo: '✓', etichetta: 'Aperta' },
-  { chip: 'bg-amber-500', simbolo: '‖', etichetta: 'Lavori in corso' },
-  { chip: 'bg-red-600', simbolo: '✕', etichetta: 'Chiusa' },
+  { chip: 'bg-amber-500', simbolo: '‖', etichetta: 'Uscita/ingresso chiuso' },
+  { chip: 'bg-red-600', simbolo: '✕', etichetta: 'Tratto chiuso (uscita obbligatoria)' },
 ] as const
 
 export function Legend() {

@@ -4,6 +4,7 @@ import type {
   Direzione,
   TangenzialeState,
   SvincoloState,
+  TrattoState,
   ClosureWindow,
 } from '@/lib/types'
 
@@ -70,12 +71,80 @@ export function statusBySvincolo(
 
   for (const sv of SVINCOLI) {
     const getStatus = (dir: Direzione): Status => {
-      const item = state.items.find((i) => i.id === sv.id && i.direzione === dir)
-      return item ? effectiveStatus(item, now) : 'verde'
+      const matches = state.items.filter(
+        (i) => i.id === sv.id && i.direzione === dir
+      )
+      return worstStatus(matches.map((item) => effectiveStatus(item, now)))
     }
 
     const pozzuoli = getStatus('pozzuoli')
     const capodichino = getStatus('capodichino')
+
+    result.set(sv.id, {
+      pozzuoli,
+      capodichino,
+      worst: worstStatus([pozzuoli, capodichino]),
+    })
+  }
+
+  return result
+}
+
+/**
+ * Restituisce i tratti chiusi con uscita obbligatoria per `direzione`, la cui
+ * finestra temporale è attiva ora (assente/vuota = sempre attivo).
+ */
+export function activeTratti(
+  state: TangenzialeState,
+  direzione: Direzione,
+  now: Date = new Date()
+): TrattoState[] {
+  return (state.tratti ?? []).filter(
+    (t) => t.direzione === direzione && isWindowActive(t.windows, now)
+  )
+}
+
+const SVINCOLO_INDEX = new Map(SVINCOLI.map((s, i) => [s.id, i]))
+
+/**
+ * Restituisce gli id di tutti gli svincoli compresi tra `da` e `a` (estremi
+ * inclusi) per ciascun tratto: la strada in quel tratto è fisicamente chiusa,
+ * quindi anche gli svincoli intermedi (non solo l'uscita obbligatoria) sono
+ * impraticabili.
+ */
+function trattoNodeIds(tratti: TrattoState[]): Set<string> {
+  const ids = new Set<string>()
+  for (const t of tratti) {
+    const ia = SVINCOLO_INDEX.get(t.da) ?? 0
+    const ib = SVINCOLO_INDEX.get(t.a) ?? 0
+    const [start, end] = ia <= ib ? [ia, ib] : [ib, ia]
+    for (let i = start; i <= end; i++) {
+      ids.add(SVINCOLI[i].id)
+    }
+  }
+  return ids
+}
+
+/**
+ * Restituisce lo status "per la mappa" di ogni svincolo: quello di
+ * `statusBySvincolo` (chiusure di svincolo, giallo) elevato a "rosso" per
+ * tutti gli svincoli compresi in un tratto attivo in quella direzione (estremi
+ * e intermedi, non solo l'uscita obbligatoria: il tratto è fisicamente
+ * chiuso). Il rosso vince sempre (worstStatus), coerente con la gravità.
+ */
+export function statusBySvincoloForMap(
+  state: TangenzialeState,
+  now: Date = new Date()
+): Map<string, SvincoloStatusInfo> {
+  const base = statusBySvincolo(state, now)
+  const chiusiPozzuoli = trattoNodeIds(activeTratti(state, 'pozzuoli', now))
+  const chiusiCapodichino = trattoNodeIds(activeTratti(state, 'capodichino', now))
+
+  const result = new Map<string, SvincoloStatusInfo>()
+  for (const sv of SVINCOLI) {
+    const info = base.get(sv.id) ?? { pozzuoli: 'verde', capodichino: 'verde', worst: 'verde' }
+    const pozzuoli = chiusiPozzuoli.has(sv.id) ? 'rosso' : info.pozzuoli
+    const capodichino = chiusiCapodichino.has(sv.id) ? 'rosso' : info.capodichino
 
     result.set(sv.id, {
       pozzuoli,

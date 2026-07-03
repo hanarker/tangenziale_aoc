@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "update": "tsx --env-file=.env scripts/update-state.ts",
-    "cron": "tsx --env-file=.env scripts/cron.ts"
+    "update": "tsx --env-file=.env --env-file=.env.local scripts/update-state.ts",
+    "cron": "tsx --env-file=.env --env-file=.env.local scripts/cron.ts"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

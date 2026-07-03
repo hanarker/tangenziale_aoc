@@ -5,7 +5,7 @@ import {
   buildEveningClosures,
   nightSpanDays,
 } from '@/lib/closures'
-import type { TangenzialeState, SvincoloState } from '@/lib/types'
+import type { TangenzialeState, SvincoloState, TrattoState } from '@/lib/types'
 
 function makeState(items: SvincoloState[]): TangenzialeState {
   return {
@@ -282,5 +282,52 @@ describe('buildEveningClosures', () => {
     expect(groups).toHaveLength(1)
     expect(groups[0].dateKey).toBe('2026-10-24')
     expect(groups[0].label).toBe('Stanotte')
+  })
+
+  it('include i tratti con finestra: nome combinato, status rosso, nota con uscita obbligatoria', () => {
+    const tratto: TrattoState = {
+      da: 'capodichino',
+      a: 'capodimonte',
+      direzione: 'pozzuoli',
+      uscitaObbligatoria: 'capodichino',
+      windows: [
+        { from: '2026-07-02T23:00:00+02:00', to: '2026-07-03T06:00:00+02:00' },
+      ],
+    }
+    const state: TangenzialeState = { ...makeState([]), tratti: [tratto] }
+    const { groups } = buildEveningClosures(state, now)
+    expect(groups).toHaveLength(1)
+    const [entry] = groups[0].entries
+    expect(entry.nome).toBe('Capodichino / Aeroporto → Capodimonte')
+    expect(entry.status).toBe('rosso')
+    expect(entry.note).toContain('Uscita obbligatoria: Capodichino / Aeroporto')
+  })
+
+  it('tratto senza windows va in permanent con status rosso', () => {
+    const tratto: TrattoState = {
+      da: 'camaldoli',
+      a: 'arenella',
+      direzione: 'capodichino',
+      uscitaObbligatoria: 'camaldoli',
+    }
+    const state: TangenzialeState = { ...makeState([]), tratti: [tratto] }
+    const { permanent, groups } = buildEveningClosures(state, now)
+    expect(groups).toEqual([])
+    expect(permanent).toHaveLength(1)
+    expect(permanent[0].status).toBe('rosso')
+  })
+
+  it('filtra le finestre di tratto già concluse', () => {
+    const tratto: TrattoState = {
+      da: 'capodichino',
+      a: 'capodimonte',
+      direzione: 'pozzuoli',
+      uscitaObbligatoria: 'capodichino',
+      windows: [
+        { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+      ],
+    }
+    const state: TangenzialeState = { ...makeState([]), tratti: [tratto] }
+    expect(buildEveningClosures(state, now).groups).toEqual([])
   })
 })

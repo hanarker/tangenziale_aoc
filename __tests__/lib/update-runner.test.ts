@@ -68,9 +68,17 @@ describe('runUpdate', () => {
   it('chiama interpretAvvisi e riscrive lo stato se il testo è cambiato', async () => {
     fakeRedisData.set(TEST_KEY, existingState)
     mockScrapeAvvisi.mockResolvedValueOnce('Testo avvisi versione B (cambiato)')
-    mockInterpretAvvisi.mockResolvedValueOnce([
-      { id: 'agnano', direzione: 'capodichino', status: 'rosso', note: 'Chiusa' },
-    ])
+    mockInterpretAvvisi.mockResolvedValueOnce({
+      items: [{ id: 'agnano', direzione: 'capodichino', status: 'giallo', note: 'Chiusa' }],
+      tratti: [
+        {
+          da: 'camaldoli',
+          a: 'arenella',
+          direzione: 'capodichino',
+          uscitaObbligatoria: 'camaldoli',
+        },
+      ],
+    })
 
     const now = new Date('2026-07-01T12:00:00.000Z')
     const result = await runUpdate(config, TEST_KEY, now)
@@ -87,11 +95,12 @@ describe('runUpdate', () => {
     expect(saved?.checkedAt).toBe(now.toISOString())
     expect(saved?.source).toBe('Testo avvisi versione B (cambiato)')
     expect(saved?.items[0].id).toBe('agnano')
+    expect(saved?.tratti?.[0].uscitaObbligatoria).toBe('camaldoli')
   })
 
   it('chiama interpretAvvisi al primo run (nessuno stato precedente)', async () => {
     mockScrapeAvvisi.mockResolvedValueOnce('Primo testo estratto')
-    mockInterpretAvvisi.mockResolvedValueOnce([])
+    mockInterpretAvvisi.mockResolvedValueOnce({ items: [], tratti: [] })
 
     const now = new Date('2026-07-01T12:00:00.000Z')
     const result = await runUpdate(config, TEST_KEY, now)

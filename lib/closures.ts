@@ -3,6 +3,7 @@ import type {
   Direzione,
   Status,
   SvincoloState,
+  TrattoState,
   TangenzialeState,
 } from '@/lib/types'
 
@@ -22,6 +23,8 @@ export interface ClosureEntry {
   to: string
   /** true se la finestra è attiva rispetto a `now` */
   active: boolean
+  /** Id svincolo usato per l'ordinamento canonico (i tratti si ordinano sull'estremo `da`) */
+  sortId?: string
 }
 
 /** Gruppo di chiusure che iniziano nella stessa serata (data di `from` a Roma) */
@@ -40,6 +43,8 @@ export interface PermanentClosure {
   direzione: Direzione
   status: Status
   note?: string
+  /** Id svincolo usato per l'ordinamento canonico (i tratti si ordinano sull'estremo `da`) */
+  sortId?: string
 }
 
 export interface EveningClosuresData {
@@ -105,18 +110,37 @@ function nomeSvincolo(id: string): string {
   return SVINCOLO_NOME.get(id) ?? id
 }
 
-/** Ordinamento canonico: indice in SVINCOLI, poi direzione (deterministico) */
+/** Nome leggibile di un tratto: "«NomeDa» → «NomeA»" */
+function nomeTratto(t: TrattoState): string {
+  return `${nomeSvincolo(t.da)} → ${nomeSvincolo(t.a)}`
+}
+
+/** Nota di un tratto, con l'uscita obbligatoria sempre esplicitata */
+function trattoNote(t: TrattoState): string {
+  const uscita = `Uscita obbligatoria: ${nomeSvincolo(t.uscitaObbligatoria)}`
+  return t.note ? `${t.note} (${uscita})` : uscita
+}
+
+/** Id composito univoco per un tratto (non collide con id svincolo) */
+function trattoId(t: TrattoState): string {
+  return `tratto:${t.da}>${t.a}`
+}
+
+/** Ordinamento canonico: indice in SVINCOLI (via sortId, fallback id), poi direzione */
 function bySvincoloThenDirection(
-  a: { id: string; direzione: Direzione },
-  b: { id: string; direzione: Direzione }
+  a: { id: string; direzione: Direzione; sortId?: string },
+  b: { id: string; direzione: Direzione; sortId?: string }
 ): number {
-  const ia = SVINCOLO_INDEX.get(a.id) ?? Number.MAX_SAFE_INTEGER
-  const ib = SVINCOLO_INDEX.get(b.id) ?? Number.MAX_SAFE_INTEGER
+  const ia = SVINCOLO_INDEX.get(a.sortId ?? a.id) ?? Number.MAX_SAFE_INTEGER
+  const ib = SVINCOLO_INDEX.get(b.sortId ?? b.id) ?? Number.MAX_SAFE_INTEGER
   if (ia !== ib) return ia - ib
   return a.direzione.localeCompare(b.direzione)
 }
 
-function collectPermanent(items: SvincoloState[]): PermanentClosure[] {
+function collectPermanent(
+  items: SvincoloState[],
+  tratti: TrattoState[]
+): PermanentClosure[] {
   const dedup = new Map<string, PermanentClosure>()
   for (const item of items) {
     if (item.windows && item.windows.length > 0) continue
@@ -130,10 +154,27 @@ function collectPermanent(items: SvincoloState[]): PermanentClosure[] {
       note: item.note,
     })
   }
+  for (const t of tratti) {
+    if (t.windows && t.windows.length > 0) continue
+    const key = `${trattoId(t)}|${t.direzione}`
+    if (dedup.has(key)) continue
+    dedup.set(key, {
+      id: trattoId(t),
+      sortId: t.da,
+      nome: nomeTratto(t),
+      direzione: t.direzione,
+      status: 'rosso',
+      note: trattoNote(t),
+    })
+  }
   return [...dedup.values()].sort(bySvincoloThenDirection)
 }
 
-function collectEntries(items: SvincoloState[], now: Date): ClosureEntry[] {
+function collectEntries(
+  items: SvincoloState[],
+  tratti: TrattoState[],
+  now: Date
+): ClosureEntry[] {
   const dedup = new Map<string, ClosureEntry>()
   for (const item of items) {
     for (const window of item.windows ?? []) {
@@ -150,6 +191,28 @@ function collectEntries(items: SvincoloState[], now: Date): ClosureEntry[] {
         direzione: item.direzione,
         status: item.status,
         note: item.note,
+        from: window.from,
+        to: window.to,
+        active: from <= now && now <= to,
+      })
+    }
+  }
+  for (const t of tratti) {
+    for (const window of t.windows ?? []) {
+      const to = new Date(window.to)
+      if (to < now) continue // finestra già conclusa
+
+      const key = `${trattoId(t)}|${t.direzione}|${window.from}|${window.to}`
+      if (dedup.has(key)) continue
+
+      const from = new Date(window.from)
+      dedup.set(key, {
+        id: trattoId(t),
+        sortId: t.da,
+        nome: nomeTratto(t),
+        direzione: t.direzione,
+        status: 'rosso',
+        note: trattoNote(t),
         from: window.from,
         to: window.to,
         active: from <= now && now <= to,
@@ -173,12 +236,13 @@ export function buildEveningClosures(
   state: TangenzialeState | null,
   now: Date
 ): EveningClosuresData {
-  if (!state || state.items.length === 0) {
+  const tratti = state?.tratti ?? []
+  if (!state || (state.items.length === 0 && tratti.length === 0)) {
     return { permanent: [], groups: [] }
   }
 
-  const permanent = collectPermanent(state.items)
-  const entries = collectEntries(state.items, now)
+  const permanent = collectPermanent(state.items, tratti)
+  const entries = collectEntries(state.items, tratti, now)
 
   const grouped = new Map<string, ClosureEntry[]>()
   for (const entry of entries) {

@@ -41,7 +41,7 @@ describe('SchematicMap', () => {
   it("mostra un'evidenza (icona ✕) sulle uscite chiuse, non solo il colore", () => {
     const { container } = render(<SchematicMap state={stateExample} direction="pozzuoli" />)
     const nodo = container.querySelector('[data-id="fuorigrotta"][data-dir="pozzuoli"]')
-    expect(nodo?.getAttribute('aria-label')).toMatch(/chiusa/i)
+    expect(nodo?.getAttribute('aria-label')).toMatch(/chius[oa]/i)
     // anello pulsante di evidenza per le chiuse
     expect(container.querySelector('.schematic-pulse')).not.toBeNull()
   })

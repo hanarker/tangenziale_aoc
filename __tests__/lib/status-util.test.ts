@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   worstStatus,
   statusBySvincolo,
+  statusBySvincoloForMap,
+  activeTratti,
   isWindowActive,
   effectiveStatus,
 } from '@/lib/status-util'
@@ -181,5 +183,208 @@ describe('statusBySvincolo', () => {
     }
     const map = statusBySvincolo(stateConFinestra, new Date('2026-07-01T02:00:00+02:00'))
     expect(map.get('agnano')?.capodichino).toBe('rosso')
+  })
+
+  it('con item duplicati stesso id+direzione, usa quello con finestra attiva ora anche se non è il primo', () => {
+    const stateConDuplicati: TangenzialeState = {
+      items: [
+        {
+          id: 'fuorigrotta',
+          direzione: 'capodichino',
+          status: 'rosso',
+          windows: [
+            { from: '2026-06-29T23:00:00+02:00', to: '2026-06-30T06:00:00+02:00' },
+          ],
+        },
+        {
+          id: 'fuorigrotta',
+          direzione: 'capodichino',
+          status: 'rosso',
+          windows: [
+            { from: '2026-07-04T00:00:00+02:00', to: '2026-07-04T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-07-02T22:35:23.305Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincolo(stateConDuplicati, new Date('2026-07-04T00:04:00+02:00'))
+    expect(map.get('fuorigrotta')?.capodichino).toBe('rosso')
+  })
+})
+
+describe('activeTratti', () => {
+  const stateConTratto: TangenzialeState = {
+    items: [],
+    tratti: [
+      {
+        da: 'capodichino',
+        a: 'capodimonte',
+        direzione: 'pozzuoli',
+        uscitaObbligatoria: 'capodichino',
+        windows: [
+          { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+        ],
+      },
+    ],
+    updatedAt: '2026-06-29T00:00:00.000Z',
+    source: 'test',
+    stale: false,
+  }
+
+  it('ritorna il tratto se la finestra è attiva ora nella direzione richiesta', () => {
+    const result = activeTratti(
+      stateConTratto,
+      'pozzuoli',
+      new Date('2026-07-01T02:00:00+02:00')
+    )
+    expect(result).toHaveLength(1)
+    expect(result[0].uscitaObbligatoria).toBe('capodichino')
+  })
+
+  it('non ritorna il tratto se la finestra non è attiva', () => {
+    const result = activeTratti(
+      stateConTratto,
+      'pozzuoli',
+      new Date('2026-07-01T12:00:00+02:00')
+    )
+    expect(result).toHaveLength(0)
+  })
+
+  it('non ritorna il tratto se la direzione richiesta è diversa', () => {
+    const result = activeTratti(
+      stateConTratto,
+      'capodichino',
+      new Date('2026-07-01T02:00:00+02:00')
+    )
+    expect(result).toHaveLength(0)
+  })
+
+  it('ritorna array vuoto se state.tratti è assente', () => {
+    const stateSenzaTratti: TangenzialeState = {
+      items: [],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    expect(activeTratti(stateSenzaTratti, 'pozzuoli', new Date())).toHaveLength(0)
+  })
+})
+
+describe('statusBySvincoloForMap', () => {
+  it('marca rosso il nodo di uscita obbligatoria di un tratto attivo', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+          windows: [
+            { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMap(state, new Date('2026-07-01T02:00:00+02:00'))
+    expect(map.get('capodichino')?.pozzuoli).toBe('rosso')
+    expect(map.get('capodichino')?.capodichino).toBe('verde')
+  })
+
+  it('non marca rosso il nodo se il tratto non è attivo ora', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+          windows: [
+            { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMap(state, new Date('2026-07-01T12:00:00+02:00'))
+    expect(map.get('capodichino')?.pozzuoli).toBe('verde')
+  })
+
+  it('combina svincolo giallo e tratto rosso: vince il rosso (worstStatus)', () => {
+    const state: TangenzialeState = {
+      items: [
+        { id: 'capodichino', direzione: 'pozzuoli', status: 'giallo' },
+      ],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMap(state, new Date('2026-07-01T12:00:00+02:00'))
+    expect(map.get('capodichino')?.pozzuoli).toBe('rosso')
+  })
+
+  it('marca rosso anche gli svincoli intermedi del tratto, non solo gli estremi/uscita obbligatoria', () => {
+    // SVINCOLI: capodichino(0), secondigliano(1), doganella(2), corso-malta(3), capodimonte(4)...
+    // Un tratto chiuso capodichino↔capodimonte rende impraticabili anche gli
+    // svincoli intermedi (secondigliano, doganella, corso-malta): la strada in
+    // quel tratto è fisicamente chiusa, non solo il punto di uscita obbligatoria.
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMap(state, new Date('2026-07-01T12:00:00+02:00'))
+    expect(map.get('secondigliano')?.pozzuoli).toBe('rosso')
+    expect(map.get('doganella')?.pozzuoli).toBe('rosso')
+    expect(map.get('corso-malta')?.pozzuoli).toBe('rosso')
+    // Estremi del tratto, inclusi
+    expect(map.get('capodichino')?.pozzuoli).toBe('rosso')
+    expect(map.get('capodimonte')?.pozzuoli).toBe('rosso')
+    // Fuori dal tratto: non toccato
+    expect(map.get('arenella')?.pozzuoli).toBe('verde')
+  })
+
+  it('non marca rosso gli svincoli intermedi nella direzione opposta a quella del tratto', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMap(state, new Date('2026-07-01T12:00:00+02:00'))
+    expect(map.get('secondigliano')?.capodichino).toBe('verde')
   })
 })

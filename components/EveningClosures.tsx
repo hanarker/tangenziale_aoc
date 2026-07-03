@@ -27,8 +27,8 @@ const DIREZIONE_LABEL: Record<Direzione, string> = {
 
 const STATUS_SR_LABEL: Record<Status, string> = {
   verde: 'Aperta',
-  giallo: 'Lavori in corso',
-  rosso: 'Chiusura',
+  giallo: 'Uscita/ingresso chiuso',
+  rosso: 'Tratto chiuso, uscita obbligatoria',
 }
 
 function MoonIcon() {

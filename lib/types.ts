@@ -26,10 +26,35 @@ export interface SvincoloState {
   windows?: ClosureWindow[]
 }
 
+/**
+ * Chiusura di un TRATTO autostradale (tra due svincoli), con conseguente
+ * uscita obbligatoria — disagio più grave di una semplice chiusura di
+ * svincolo, per questo modellato separatamente da `SvincoloState` (geometria
+ * diversa: due estremi anziché un nodo singolo).
+ */
+export interface TrattoState {
+  /** Id svincolo estremo di partenza del tratto chiuso (in SVINCOLO_IDS) */
+  da: string
+  /** Id svincolo estremo di arrivo del tratto chiuso (in SVINCOLO_IDS) */
+  a: string
+  direzione: Direzione
+  /** Id svincolo dove è obbligatoria l'uscita (in SVINCOLO_IDS) */
+  uscitaObbligatoria: string
+  note?: string
+  /** Stessa semantica di SvincoloState.windows: assente/vuoto = sempre attivo */
+  windows?: ClosureWindow[]
+}
+
 /** Stato globale della tangenziale */
 export interface TangenzialeState {
-  /** Elenco degli stati per ogni svincolo × direzione */
+  /**
+   * Elenco degli stati per ogni svincolo × direzione. Contiene SOLO chiusure
+   * di svincolo d'uscita/ingresso (status "giallo"); le chiusure di tratto
+   * con uscita obbligatoria stanno in `tratti`.
+   */
   items: SvincoloState[]
+  /** Chiusure di tratto autostradale con uscita obbligatoria (status "rosso" implicito) */
+  tratti?: TrattoState[]
   /** ISO timestamp dell'ultimo cambiamento di contenuto rilevato (ri-classificato dall'LLM) */
   updatedAt: string
   /**

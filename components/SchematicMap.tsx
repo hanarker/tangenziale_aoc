@@ -1,7 +1,7 @@
 'use client'
 
 import { SVINCOLI } from '@/lib/svincoli'
-import { statusBySvincolo } from '@/lib/status-util'
+import { statusBySvincoloForMap, activeTratti } from '@/lib/status-util'
 import { computeWavePoints, toSmoothPath } from '@/lib/schematic-layout'
 import type { TangenzialeState, Status, Direzione } from '@/lib/types'
 
@@ -15,6 +15,26 @@ interface SchematicMapProps {
    * "vertical" stile linea metro, pensato per smartphone senza scroll.
    */
   orientation?: Orientation
+  /** Istante di riferimento per le finestre temporali dei tratti (default: now) */
+  now?: Date
+}
+
+const SVINCOLO_INDEX = new Map(SVINCOLI.map((s, i) => [s.id, i]))
+
+/**
+ * Percorsi (uno per tratto attivo) tra i due estremi `da`/`a`, come sotto-tracciato
+ * di `points` (allineato per indice a SVINCOLI in entrambi gli orientamenti).
+ */
+function trattoSegmentPaths(
+  tratti: { da: string; a: string }[],
+  points: [number, number][]
+): string[] {
+  return tratti.map((t) => {
+    const ia = SVINCOLO_INDEX.get(t.da) ?? 0
+    const ib = SVINCOLO_INDEX.get(t.a) ?? 0
+    const [start, end] = ia <= ib ? [ia, ib] : [ib, ia]
+    return toSmoothPath(points.slice(start, end + 1))
+  })
 }
 
 const STATUS_VAR: Record<Status, string> = {
@@ -25,8 +45,8 @@ const STATUS_VAR: Record<Status, string> = {
 
 const STATUS_LABEL: Record<Status, string> = {
   verde: 'Aperta',
-  giallo: 'Lavori in corso',
-  rosso: 'Chiusa',
+  giallo: 'Uscita/ingresso chiuso',
+  rosso: 'Tratto chiuso, uscita obbligatoria',
 }
 
 const DIREZIONE_LABEL: Record<Direzione, string> = {
@@ -238,8 +258,10 @@ export function SchematicMap({
   state,
   direction,
   orientation = 'horizontal',
+  now,
 }: SchematicMapProps) {
-  const statusMap = statusBySvincolo(state)
+  const statusMap = statusBySvincoloForMap(state, now)
+  const tratti = activeTratti(state, direction, now)
   const isVertical = orientation === 'vertical'
 
   // Verticale: Capodichino in alto → si viaggia "in su" verso Capodichino
@@ -257,6 +279,7 @@ export function SchematicMap({
   const svgH = isVertical ? V_SVG_H : SVG_H
   // Id univoco per variante: entrambe possono coesistere nel DOM (visibilità responsive)
   const shadowId = `badgeShadow-${orientation}`
+  const trattoPaths = trattoSegmentPaths(tratti, points)
 
   const svg = (
     <svg
@@ -275,6 +298,20 @@ export function SchematicMap({
       {/* ── Sede stradale ───────────────────────────────────────────── */}
       <path d={roadPath} fill="none" stroke="var(--road-navy)" strokeWidth={ROAD_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
       <path d={roadPath} fill="none" stroke="var(--road-dash)" strokeWidth={2} strokeDasharray="10 9" strokeLinecap="round" />
+
+      {/* ── Tratti chiusi con uscita obbligatoria: segmento in evidenza ── */}
+      {trattoPaths.map((d, i) => (
+        <path
+          key={`tratto-${i}`}
+          d={d}
+          fill="none"
+          stroke="var(--status-rosso)"
+          strokeWidth={ROAD_WIDTH}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          data-tratto-chiuso="true"
+        />
+      ))}
 
       {/* ── Indicatore di senso di marcia ───────────────────────────── */}
       <text

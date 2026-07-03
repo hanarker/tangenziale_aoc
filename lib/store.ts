@@ -17,8 +17,18 @@ const SvincoloStateSchema = z.object({
   windows: z.array(ClosureWindowSchema).optional(),
 })
 
+const TrattoStateSchema = z.object({
+  da: z.string(),
+  a: z.string(),
+  direzione: z.enum(['capodichino', 'pozzuoli']),
+  uscitaObbligatoria: z.string(),
+  note: z.string().optional(),
+  windows: z.array(ClosureWindowSchema).optional(),
+})
+
 const TangenzialeStateSchema = z.object({
   items: z.array(SvincoloStateSchema),
+  tratti: z.array(TrattoStateSchema).optional(),
   updatedAt: z.string(),
   checkedAt: z.string().optional(),
   source: z.string(),

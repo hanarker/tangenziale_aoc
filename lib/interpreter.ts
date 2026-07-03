@@ -1,24 +1,41 @@
 import OpenAI from 'openai'
 import { z } from 'zod'
-import { SVINCOLO_IDS } from '@/lib/svincoli'
-import type { SvincoloState } from '@/lib/types'
+import { SVINCOLI, SVINCOLO_IDS } from '@/lib/svincoli'
+import type { SvincoloState, TrattoState } from '@/lib/types'
 
 const ClosureWindowSchema = z.object({
   from: z.string(),
   to: z.string(),
 })
 
+const SVINCOLO_ID_ENUM = z.enum(SVINCOLO_IDS as [string, ...string[]])
+
 const SvincoloStateSchema = z.object({
-  id: z.string(),
+  id: SVINCOLO_ID_ENUM,
   direzione: z.enum(['capodichino', 'pozzuoli']),
   status: z.enum(['verde', 'giallo', 'rosso']),
   note: z.string().optional(),
   windows: z.array(ClosureWindowSchema).optional(),
 })
 
+const TrattoStateSchema = z.object({
+  da: SVINCOLO_ID_ENUM,
+  a: SVINCOLO_ID_ENUM,
+  direzione: z.enum(['capodichino', 'pozzuoli']),
+  uscitaObbligatoria: SVINCOLO_ID_ENUM,
+  note: z.string().optional(),
+  windows: z.array(ClosureWindowSchema).optional(),
+})
+
 const ResponseSchema = z.object({
   items: z.array(SvincoloStateSchema),
+  tratti: z.array(TrattoStateSchema).optional(),
 })
+
+export interface InterpretedAvvisi {
+  items: SvincoloState[]
+  tratti: TrattoState[]
+}
 
 const ROME_TIMEZONE = 'Europe/Rome'
 
@@ -56,21 +73,39 @@ function formatNowWithRomeOffset(now: Date): string {
 
 function buildSystemPrompt(now: Date): string {
   const nowIso = formatNowWithRomeOffset(now)
+  const svincoliList = SVINCOLI.map((s) => `${s.id} = "${s.nome}"`).join(', ')
 
   return `Sei un assistente che interpreta avvisi stradali della Tangenziale di Napoli.
-Ti verrà fornito un testo con avvisi ai viaggiatori e dovrai classificare ogni svincolo
-per ciascuna direzione usando questi colori:
-- "verde": aperto e scorrevole (default)
-- "giallo": rallentamenti o lavori in corso
-- "rosso": uscita/entrata chiusa
+Ti verrà fornito un testo con avvisi ai viaggiatori. Devi distinguere DUE TIPI di
+chiusura, che vanno in due elenchi separati della risposta:
+
+1. "items": chiusura di un singolo SVINCOLO (uscita e/o ingresso), senza obbligare a
+   uscire dal tratto autostradale. Frasi tipiche: "verrà chiuso lo svincolo d'uscita
+   «X»", "verrà chiuso lo svincolo d'ingresso/entrata «X»". Colore: SEMPRE "giallo"
+   (mai "rosso": il rosso è riservato ai tratti, vedi punto 2; usa "verde" solo se
+   non applicabile, ma per un item da includere lo stato è sempre "giallo").
+2. "tratti": chiusura di un TRATTO autostradale tra due svincoli, con conseguente
+   USCITA OBBLIGATORIA. Frasi tipiche: "verranno chiusi il tratto autostradale
+   «X/Y» ... con conseguente uscita obbligatoria «Z»". Qui "X/Y" sono i due
+   svincoli estremi del tratto chiuso (in un ordine qualsiasi) e "Z" è lo svincolo
+   dove i veicoli sono obbligati a uscire (di solito coincide con uno tra X e Y, il
+   più vicino alla provenienza). Ogni tratto ha i campi: "da", "a" (i due estremi),
+   "direzione", "uscitaObbligatoria", "note" opzionale, "windows" opzionale. Non
+   generare per i tratti un colore/status: sono implicitamente "rosso".
+
+Gli id svincolo validi, con il nome come compare nel testo sorgente, sono:
+${svincoliList}
+Usa SOLO questi id per "id" (negli items) e per "da"/"a"/"uscitaObbligatoria" (nei
+tratti). Individua l'id corretto dal nome più vicino citato nel testo (i nomi nel
+testo possono abbreviare o comporre più tratti/uscite con "/").
 
 Il campo "direzione" ammette SOLO due valori: "capodichino" oppure "pozzuoli".
 Il testo sorgente usa spesso sinonimi che NON vanno copiati letteralmente: normalizzali
 sempre a una delle due etichette valide.
 - "autostrade", "Napoli", "aeroporto" → "capodichino"
 - "mare", "Pozzuoli", "Cuma" → "pozzuoli"
-Se un avviso indica "entrambe le direzioni", genera due item separati (uno per
-"capodichino" e uno per "pozzuoli") con lo stesso stato e la stessa nota.
+Se un avviso indica "entrambe le direzioni", genera due elementi separati (uno per
+"capodichino" e uno per "pozzuoli") con la stessa nota.
 
 La data e ora corrente è: ${nowIso} (fuso Europe/Rome).
 Molte chiusure sono PROGRAMMATE solo in specifiche fasce orarie e date (es. "dalle ore
@@ -94,32 +129,55 @@ proprio orario di inizio, non estendere un solo orario a tutte le date della fra
 una chiusura NON ha un orario/data specifico (es. lavori permanenti o divieti senza
 fascia oraria), ometti il campo "windows" (sempre attiva).
 
+ATTENZIONE: lo stesso svincolo o lo stesso tratto (stessi "id"/stessi "da"+"a") può
+essere citato in PIÙ paragrafi separati del testo, uno per ogni settimana/periodo di
+cantiere (es. un paragrafo per "questa settimana" con alcune date, un altro paragrafo
+più avanti nel testo per "la settimana successiva" con date diverse). NON fondere questi
+paragrafi scartando le date di uno di essi: DEVI includere nel campo "windows" TUTTE le
+finestre di TUTTI i paragrafi che citano quello svincolo/tratto, senza lasciare che
+l'ultima occorrenza nel testo sovrascriva o faccia perdere le finestre di un'occorrenza
+precedente. In pratica, prima di scrivere l'item/tratto finale, cerca nell'intero testo
+OGNI paragrafo che lo riguarda e unisci le finestre di tutti.
+
 Restituisci SOLO un JSON con questa struttura:
 {
   "items": [
     {
       "id": "<id_svincolo>",
       "direzione": "capodichino|pozzuoli",
-      "status": "verde|giallo|rosso",
+      "status": "giallo",
+      "note": "...",
+      "windows": [{ "from": "2026-06-30T23:00:00+02:00", "to": "2026-07-01T06:00:00+02:00" }]
+    }
+  ],
+  "tratti": [
+    {
+      "da": "<id_svincolo>",
+      "a": "<id_svincolo>",
+      "direzione": "capodichino|pozzuoli",
+      "uscitaObbligatoria": "<id_svincolo>",
       "note": "...",
       "windows": [{ "from": "2026-06-30T23:00:00+02:00", "to": "2026-07-01T06:00:00+02:00" }]
     }
   ]
 }
 
-Includi SOLO i svincoli che hanno uno stato diverso da "verde".
+Includi in "items" SOLO gli svincoli chiusi (uscita/ingresso, mai il caso "tratto").
+Includi in "tratti" SOLO le chiusure di tratto con uscita obbligatoria.
 Non inventare svincoli: usa solo questi id: ${SVINCOLO_IDS.join(', ')}.`
 }
 
 /**
- * Chiama l'API OpenAI per interpretare il testo degli avvisi e restituisce
- * gli stati dei svincoli. Valida la risposta con zod (lancia su schema non valido).
+ * Chiama l'API OpenAI per interpretare il testo degli avvisi e restituisce gli
+ * item (chiusure di svincolo, giallo) e i tratti (chiusure con uscita
+ * obbligatoria, rosso implicito). Valida la risposta con zod (lancia su schema
+ * non valido, incluso un id svincolo fuori enum).
  */
 export async function interpretAvvisi(
   apiKey: string,
   testoAvvisi: string,
   now: Date = new Date()
-): Promise<SvincoloState[]> {
+): Promise<InterpretedAvvisi> {
   const client = new OpenAI({ apiKey })
 
   const completion = await client.chat.completions.create({
@@ -140,5 +198,8 @@ export async function interpretAvvisi(
   const parsed = JSON.parse(rawContent)
   const validated = ResponseSchema.parse(parsed)
 
-  return validated.items as SvincoloState[]
+  return {
+    items: validated.items as SvincoloState[],
+    tratti: (validated.tratti ?? []) as TrattoState[],
+  }
 }

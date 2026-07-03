@@ -108,4 +108,31 @@ describe('store', () => {
     const read = await readState(TEST_KEY)
     expect(read).toBeNull()
   })
+
+  it('readState legge correttamente uno stato senza tratti (retro-compatibilità)', async () => {
+    fakeRedisData.set(TEST_KEY, stateOk)
+    const read = await readState(TEST_KEY)
+    expect(read?.tratti).toBeUndefined()
+  })
+
+  it('scrive e rilegge correttamente il campo tratti', async () => {
+    const stateConTratti: TangenzialeState = {
+      ...stateOk,
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+          note: 'Chiusura tratto con uscita obbligatoria',
+          windows: [
+            { from: '2026-06-30T23:00:00+02:00', to: '2026-07-01T06:00:00+02:00' },
+          ],
+        },
+      ],
+    }
+    await writeState(stateConTratti, TEST_KEY)
+    const read = await readState(TEST_KEY)
+    expect(read?.tratti).toEqual(stateConTratti.tratti)
+  })
 })
