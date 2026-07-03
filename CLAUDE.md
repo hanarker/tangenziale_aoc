@@ -28,14 +28,14 @@ app/page.tsx (force-dynamic) → readState → MapViewSwitcher/SchematicMap + Ev
 ## Deploy su Vercel
 - Storage: integrazione Marketplace **Upstash for Redis** (`upstash/upstash-kv`) collegata al progetto — provisiona `KV_*`/`REDIS_URL` su tutti gli ambienti.
 - Cron: `vercel.json` definisce `/api/cron/update`, protetto da header `Authorization: Bearer $CRON_SECRET` (env var da impostare su Vercel, non presente in `.env.example` per non finire in git).
-- **Piano Hobby**: i Cron Jobs sono limitati a **1 esecuzione al giorno** (niente orario). Lo schedule attuale (`0 4 * * *`) è un compromesso temporaneo; per tornare a un aggiornamento realmente orario serve Vercel Pro oppure uno scheduler esterno (es. cron-job.org, GitHub Actions) che chiami l'endpoint ogni ora.
+- Schedule attuale in `vercel.json`: due esecuzioni/giorno alle **05:00 e 16:00 UTC** (07:00 e 18:00 ora italiana in CEST; 06:00/17:00 in CET), compromesso tra i limiti del piano e la necessità di coprire mattina/sera. Per un aggiornamento realmente orario serve un piano Vercel superiore oppure uno scheduler esterno (es. cron-job.org, GitHub Actions) che chiami l'endpoint ogni ora.
 - I Vercel Cron Jobs girano **solo sui deployment Production**, mai su Preview.
 
 ## Modello dati (lib/types.ts)
 - `state.items` contiene SOLO svincoli non-verdi; assente = verde (default ovunque).
 - `SvincoloState.windows?: ClosureWindow[]` = finestre in cui lo status è attivo; **assente/vuoto = sempre attivo**.
 - `updatedAt` = ultimo cambiamento di contenuto (LLM rieseguito); `checkedAt` = ultimo scraping riuscito anche senza cambiamenti. La StatusBar li mostra entrambi.
-- Lo stato mostrato è quello **effettivo rispetto a `now`**: `effectiveStatus`/`statusBySvincolo` (lib/status-util.ts) danno verde fuori dalle finestre. Calcolato a ogni richiesta (pagina force-dynamic), non allo scraping.
+- Lo stato mostrato è quello **effettivo rispetto a `now`**: `effectiveStatus`/`statusBySvincolo` (lib/status-util.ts) danno verde fuori dalle finestre. Calcolato a ogni richiesta (pagina force-dynamic), non allo scraping. Conseguenza: il passaggio di stato a un orario di inizio/fine finestra (es. mezzanotte) è corretto già dal prossimo caricamento della pagina, senza bisogno che il cron sia appena girato — ma **non c'è polling/auto-refresh lato client**, quindi una tab già aperta resta sullo stato vecchio finché l'utente non ricarica.
 - Id canonici svincoli: `lib/svincoli.ts` (fonte di verità per mappa, prompt LLM e ordinamenti).
 
 ## Regole del progetto
