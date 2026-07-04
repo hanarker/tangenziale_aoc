@@ -64,10 +64,9 @@ export default function PrivacyPage() {
 
         <SectionPanel id="cookie-tecnici" titolo="Cookie tecnici" icona={<LockIcon />}>
           <p className="text-foreground leading-relaxed">
-            Il sito non installa cookie tecnici propri. L&apos;unica informazione salvata sul tuo
-            dispositivo è la tua scelta di consenso ai cookie (accettato/rifiutato), memorizzata
-            nel local storage del browser: non viene trasmessa a noi né a terzi e serve solo a non
-            richiederti di nuovo la scelta ad ogni visita.
+            Il sito non installa cookie tecnici propri né salva alcuna preferenza sul tuo
+            dispositivo per proprio conto. Gli unici cookie eventualmente presenti sono quelli
+            impostati direttamente da Google, descritti nella sezione successiva.
           </p>
         </SectionPanel>
 
@@ -77,12 +76,15 @@ export default function PrivacyPage() {
           icona={<LockIcon />}
         >
           <p className="text-foreground leading-relaxed">
-            In futuro il sito potrà ospitare annunci pubblicitari tramite Google AdSense, un
-            servizio che utilizza cookie di profilazione per mostrare annunci pertinenti agli
-            interessi dell&apos;utente. Questi cookie non sono ancora attivi: verranno caricati
-            solo dopo che avrai espresso un consenso esplicito tramite il banner mostrato sul
-            sito. Potrai revocare il consenso in qualsiasi momento cancellando i dati del sito dal
-            tuo browser. Per maggiori informazioni su come Google tratta i dati, consulta la{' '}
+            Il sito ospita annunci pubblicitari tramite Google AdSense, un servizio che può
+            utilizzare cookie e tecnologie simili per mostrare annunci, anche personalizzati in
+            base ai tuoi interessi. Per gli utenti che si connettono dallo Spazio Economico
+            Europeo e dal Regno Unito, la raccolta del consenso a questi cookie avviene tramite il
+            messaggio di consenso fornito e gestito direttamente da Google (Google&apos;s EU user
+            consent policy), mostrato al primo accesso al sito: puoi modificare o revocare le tue
+            scelte in qualsiasi momento tramite quel messaggio. Il titolare del sito non riceve,
+            non gestisce e non ha accesso ai dati raccolti da Google tramite questi cookie. Per
+            maggiori informazioni su come Google tratta i dati, consulta la{' '}
             <a
               href="https://policies.google.com/technologies/ads"
               target="_blank"
@@ -90,27 +92,36 @@ export default function PrivacyPage() {
               className="underline hover:text-accent"
             >
               informativa sulla pubblicità di Google
-            </a>
-            .
+            </a>{' '}
+            e la pagina{' '}
+            <a
+              href="https://myadcenter.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-accent"
+            >
+              Ad Center di Google
+            </a>{' '}
+            per gestire le preferenze pubblicitarie.
           </p>
         </SectionPanel>
 
         <SectionPanel id="base-giuridica" titolo="Base giuridica" icona={<LockIcon />}>
           <p className="text-foreground leading-relaxed">
-            Il trattamento dei dati tramite cookie non essenziali (pubblicitari) si basa sul tuo
-            consenso (art. 6, par. 1, lett. a, GDPR), liberamente revocabile in ogni momento. I
-            log tecnici indispensabili al funzionamento del sito sono trattati sulla base del
-            legittimo interesse del titolare alla sicurezza e al corretto funzionamento del
-            servizio.
+            Il trattamento dei dati tramite i cookie pubblicitari di Google si basa sul consenso
+            dell&apos;utente (art. 6, par. 1, lett. a, GDPR), raccolto e liberamente revocabile
+            tramite il messaggio di consenso di Google descritto sopra. I log tecnici
+            indispensabili al funzionamento del sito sono trattati sulla base del legittimo
+            interesse del titolare alla sicurezza e al corretto funzionamento del servizio.
           </p>
         </SectionPanel>
 
         <SectionPanel id="conservazione" titolo="Conservazione dei dati" icona={<LockIcon />}>
           <p className="text-foreground leading-relaxed">
-            La preferenza di consenso ai cookie resta salvata sul tuo dispositivo fino a quando
-            non la cancelli manualmente dal browser o esprimi una scelta diversa tramite il
-            banner. I log tecnici del server sono conservati per il tempo minimo necessario alle
-            finalità di sicurezza.
+            Le preferenze di consenso raccolte da Google restano gestite direttamente da Google
+            secondo le sue policy di conservazione, richiamate nell&apos;informativa sulla
+            pubblicità linkata sopra. I log tecnici del server sono conservati per il tempo minimo
+            necessario alle finalità di sicurezza.
           </p>
         </SectionPanel>
 
@@ -139,8 +150,8 @@ export default function PrivacyPage() {
 
         <SectionPanel id="modifiche" titolo="Modifiche a questa informativa" icona={<LockIcon />}>
           <p className="text-foreground leading-relaxed">
-            Questa informativa può essere aggiornata nel tempo, ad esempio in caso di attivazione
-            effettiva della pubblicità. Ultimo aggiornamento: luglio 2026.
+            Questa informativa può essere aggiornata nel tempo, ad esempio in caso di modifiche ai
+            servizi pubblicitari utilizzati. Ultimo aggiornamento: luglio 2026.
           </p>
         </SectionPanel>
       </div>

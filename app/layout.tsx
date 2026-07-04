@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Barlow, Barlow_Condensed } from 'next/font/google'
 import { Navbar } from '@/components/Navbar'
-import { CookieBanner } from '@/components/CookieBanner'
 import './globals.css'
+
+// Letto una volta a livello di modulo: assente in dev/locale finché l'account
+// AdSense non è approvato e configurato (vedi .env.example).
+const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID
 
 const barlow = Barlow({
   subsets: ['latin'],
@@ -31,9 +35,16 @@ export default function RootLayout({
       className={`${barlow.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground flex flex-col font-sans">
+        {ADSENSE_CLIENT_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <Navbar />
         {children}
-        <CookieBanner />
       </body>
     </html>
   )

@@ -5,7 +5,6 @@ import { Legend } from '@/components/Legend'
 import { StatusBar } from '@/components/StatusBar'
 import { EveningClosures } from '@/components/EveningClosures'
 import { InfoSections } from '@/components/InfoSections'
-import { AdSlot } from '@/components/AdSlot'
 import { ShieldLogo } from '@/components/ShieldLogo'
 
 // Rilegge i dati ad ogni richiesta (non cached), così il cron
@@ -72,14 +71,8 @@ export default async function HomePage() {
       {/* Chiusure programmate per le prossime serate */}
       <EveningClosures state={state} now={now} />
 
-      {/* Banner pubblicitario (segnaposto AdSense) */}
-      <AdSlot id="dopo-mappa" />
-
       {/* Sezioni informative */}
       <InfoSections />
-
-      {/* Banner pubblicitario (segnaposto AdSense) */}
-      <AdSlot id="pre-footer" />
 
       {/* Footer */}
       <footer className="mt-8 text-center text-xs text-muted">
