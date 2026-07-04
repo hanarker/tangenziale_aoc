@@ -49,7 +49,7 @@ export default async function HomePage() {
         </h2>
         {state ? (
           <>
-            <MapViewSwitcher state={state} />
+            <MapViewSwitcher state={state} now={now} />
             <StatusBar
               updatedAt={state.updatedAt}
               checkedAt={state.checkedAt}
