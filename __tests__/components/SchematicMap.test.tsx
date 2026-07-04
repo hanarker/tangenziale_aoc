@@ -150,3 +150,101 @@ describe('SchematicMap', () => {
     expect(container.querySelectorAll('[data-tratto-chiuso="true"]')).toHaveLength(0)
   })
 })
+
+describe('SchematicMap con dateKey', () => {
+  it('usa dateKey al posto di now: marca giallo lo svincolo la cui finestra inizia in quella data', () => {
+    const state: TangenzialeState = {
+      items: [
+        {
+          id: 'fuorigrotta',
+          direzione: 'capodichino',
+          status: 'giallo',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const { container } = render(
+      <SchematicMap state={state} direction="capodichino" now={now} dateKey="2026-07-06" />
+    )
+    expect(
+      container.querySelector('[data-id="fuorigrotta"][data-dir="capodichino"]')
+    ).toHaveAttribute('data-status', 'giallo')
+  })
+
+  it('con dateKey ignora now: verde se nessuna finestra inizia nella data selezionata', () => {
+    const state: TangenzialeState = {
+      items: [
+        {
+          id: 'fuorigrotta',
+          direzione: 'capodichino',
+          status: 'giallo',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const { container } = render(
+      <SchematicMap state={state} direction="capodichino" now={now} dateKey="2026-07-13" />
+    )
+    expect(
+      container.querySelector('[data-id="fuorigrotta"][data-dir="capodichino"]')
+    ).toHaveAttribute('data-status', 'verde')
+  })
+
+  it('disegna il segmento del tratto per la data selezionata anche se now non è dentro la finestra', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'camaldoli',
+          a: 'arenella',
+          direzione: 'capodichino',
+          uscitaObbligatoria: 'camaldoli',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const { container } = render(
+      <SchematicMap state={state} direction="capodichino" now={now} dateKey="2026-07-06" />
+    )
+    expect(container.querySelectorAll('[data-tratto-chiuso="true"]').length).toBeGreaterThan(0)
+  })
+
+  it('non disegna il segmento del tratto se dateKey non corrisponde a nessuna finestra', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'camaldoli',
+          a: 'arenella',
+          direzione: 'capodichino',
+          uscitaObbligatoria: 'camaldoli',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const { container } = render(
+      <SchematicMap state={state} direction="capodichino" now={now} dateKey="2026-07-13" />
+    )
+    expect(container.querySelectorAll('[data-tratto-chiuso="true"]')).toHaveLength(0)
+  })
+})

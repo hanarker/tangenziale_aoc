@@ -1,7 +1,12 @@
 'use client'
 
 import { SVINCOLI } from '@/lib/svincoli'
-import { statusBySvincoloForMap, activeTratti } from '@/lib/status-util'
+import {
+  statusBySvincoloForMap,
+  activeTratti,
+  statusBySvincoloForMapForDateKey,
+  activeTrattiForDateKey,
+} from '@/lib/status-util'
 import { computeWavePoints, toSmoothPath } from '@/lib/schematic-layout'
 import type { TangenzialeState, Status, Direzione } from '@/lib/types'
 
@@ -17,6 +22,11 @@ interface SchematicMapProps {
   orientation?: Orientation
   /** Istante di riferimento per le finestre temporali dei tratti (default: now) */
   now?: Date
+  /**
+   * Se presente, mostra lo stato per questa data di calendario ('YYYY-MM-DD',
+   * fuso Europe/Rome) invece che per `now`: ha sempre precedenza su `now`.
+   */
+  dateKey?: string
 }
 
 const SVINCOLO_INDEX = new Map(SVINCOLI.map((s, i) => [s.id, i]))
@@ -259,9 +269,14 @@ export function SchematicMap({
   direction,
   orientation = 'horizontal',
   now,
+  dateKey,
 }: SchematicMapProps) {
-  const statusMap = statusBySvincoloForMap(state, now)
-  const tratti = activeTratti(state, direction, now)
+  const statusMap = dateKey
+    ? statusBySvincoloForMapForDateKey(state, dateKey)
+    : statusBySvincoloForMap(state, now)
+  const tratti = dateKey
+    ? activeTrattiForDateKey(state, direction, dateKey)
+    : activeTratti(state, direction, now)
   const isVertical = orientation === 'vertical'
 
   // Verticale: Capodichino in alto → si viaggia "in su" verso Capodichino
