@@ -49,3 +49,6 @@ yarn-error.log*
 next-env.d.ts
 data/state.json
 .env
+
+# worktree scratch
+.worktrees/
