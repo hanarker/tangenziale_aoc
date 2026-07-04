@@ -176,18 +176,23 @@ Non inventare svincoli: usa solo questi id: ${SVINCOLO_IDS.join(', ')}.`
 export async function interpretAvvisi(
   apiKey: string,
   testoAvvisi: string,
-  now: Date = new Date()
+  now: Date = new Date(),
+  model: string = 'gpt-5'
 ): Promise<InterpretedAvvisi> {
   const client = new OpenAI({ apiKey })
 
+  // I modelli "reasoning" (famiglia gpt-5) accettano solo temperature di default (1):
+  // per loro il parametro va omesso, non impostato a 0 come per gpt-4o.
+  const isReasoningModel = model.startsWith('gpt-5')
+
   const completion = await client.chat.completions.create({
-    model: 'gpt-4o',
+    model,
     messages: [
       { role: 'system', content: buildSystemPrompt(now) },
       { role: 'user', content: `Avvisi da classificare:\n\n${testoAvvisi}` },
     ],
     response_format: { type: 'json_object' },
-    temperature: 0,
+    ...(isReasoningModel ? {} : { temperature: 0 }),
   })
 
   const rawContent = completion.choices[0]?.message?.content
