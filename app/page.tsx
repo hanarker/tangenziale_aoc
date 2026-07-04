@@ -96,6 +96,9 @@ export default async function HomePage() {
           e interpretati con OpenAI
         </p>
         <p className="mt-1">
+          I dati sono generati tramite interpretazione automatica e potrebbero contenere errori: verifica sempre con fonti ufficiali prima di metterti in viaggio.
+        </p>
+        <p className="mt-1">
           <Link href="/privacy" className="underline hover:text-accent">
             Privacy e Cookie
           </Link>
