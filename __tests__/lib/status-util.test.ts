@@ -6,6 +6,10 @@ import {
   activeTratti,
   isWindowActive,
   effectiveStatus,
+  isWindowOnDate,
+  statusBySvincoloForDateKey,
+  activeTrattiForDateKey,
+  statusBySvincoloForMapForDateKey,
 } from '@/lib/status-util'
 import type { TangenzialeState, SvincoloState, ClosureWindow } from '@/lib/types'
 
@@ -386,5 +390,172 @@ describe('statusBySvincoloForMap', () => {
     }
     const map = statusBySvincoloForMap(state, new Date('2026-07-01T12:00:00+02:00'))
     expect(map.get('secondigliano')?.capodichino).toBe('verde')
+  })
+})
+
+describe('isWindowOnDate', () => {
+  const notte: ClosureWindow = {
+    from: '2026-07-06T23:00:00+02:00',
+    to: '2026-07-07T06:00:00+02:00',
+  }
+
+  it('ritorna true se windows è assente (sempre attivo)', () => {
+    expect(isWindowOnDate(undefined, '2026-07-01')).toBe(true)
+  })
+
+  it('ritorna true se windows è vuoto (sempre attivo)', () => {
+    expect(isWindowOnDate([], '2026-07-01')).toBe(true)
+  })
+
+  it('ritorna true se una finestra inizia in quella data (fuso Europe/Rome)', () => {
+    expect(isWindowOnDate([notte], '2026-07-06')).toBe(true)
+  })
+
+  it('ritorna false se nessuna finestra inizia in quella data', () => {
+    expect(isWindowOnDate([notte], '2026-07-07')).toBe(false)
+    expect(isWindowOnDate([notte], '2026-07-13')).toBe(false)
+  })
+
+  it('ritorna true se almeno una tra più finestre inizia in quella data', () => {
+    const altra: ClosureWindow = {
+      from: '2026-07-13T23:00:00+02:00',
+      to: '2026-07-14T06:00:00+02:00',
+    }
+    expect(isWindowOnDate([notte, altra], '2026-07-13')).toBe(true)
+  })
+})
+
+describe('statusBySvincoloForDateKey', () => {
+  it('ritorna lo status annunciato se una finestra inizia in quella data', () => {
+    const state: TangenzialeState = {
+      items: [
+        {
+          id: 'agnano',
+          direzione: 'capodichino',
+          status: 'rosso',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForDateKey(state, '2026-07-06')
+    expect(map.get('agnano')?.capodichino).toBe('rosso')
+  })
+
+  it('ritorna verde se nessuna finestra inizia in quella data', () => {
+    const state: TangenzialeState = {
+      items: [
+        {
+          id: 'agnano',
+          direzione: 'capodichino',
+          status: 'rosso',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForDateKey(state, '2026-07-13')
+    expect(map.get('agnano')?.capodichino).toBe('verde')
+  })
+
+  it('una chiusura permanente (senza finestre) è attiva per qualsiasi data', () => {
+    const state: TangenzialeState = {
+      items: [{ id: 'agnano', direzione: 'capodichino', status: 'giallo' }],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForDateKey(state, '2026-07-06')
+    expect(map.get('agnano')?.capodichino).toBe('giallo')
+  })
+})
+
+describe('activeTrattiForDateKey', () => {
+  const stateConTratto: TangenzialeState = {
+    items: [],
+    tratti: [
+      {
+        da: 'capodichino',
+        a: 'capodimonte',
+        direzione: 'pozzuoli',
+        uscitaObbligatoria: 'capodichino',
+        windows: [
+          { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+        ],
+      },
+    ],
+    updatedAt: '2026-06-29T00:00:00.000Z',
+    source: 'test',
+    stale: false,
+  }
+
+  it('ritorna il tratto se una finestra inizia in quella data nella direzione richiesta', () => {
+    const result = activeTrattiForDateKey(stateConTratto, 'pozzuoli', '2026-07-06')
+    expect(result).toHaveLength(1)
+  })
+
+  it('non ritorna il tratto se nessuna finestra inizia in quella data', () => {
+    const result = activeTrattiForDateKey(stateConTratto, 'pozzuoli', '2026-07-13')
+    expect(result).toHaveLength(0)
+  })
+
+  it('non ritorna il tratto se la direzione richiesta è diversa', () => {
+    const result = activeTrattiForDateKey(stateConTratto, 'capodichino', '2026-07-06')
+    expect(result).toHaveLength(0)
+  })
+})
+
+describe('statusBySvincoloForMapForDateKey', () => {
+  it('marca rosso gli svincoli del tratto (estremi e intermedi) per la data selezionata', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMapForDateKey(state, '2026-07-06')
+    expect(map.get('secondigliano')?.pozzuoli).toBe('rosso')
+    expect(map.get('capodichino')?.pozzuoli).toBe('rosso')
+  })
+
+  it('non marca rosso se la data selezionata non corrisponde a nessuna finestra del tratto', () => {
+    const state: TangenzialeState = {
+      items: [],
+      tratti: [
+        {
+          da: 'capodichino',
+          a: 'capodimonte',
+          direzione: 'pozzuoli',
+          uscitaObbligatoria: 'capodichino',
+          windows: [
+            { from: '2026-07-06T23:00:00+02:00', to: '2026-07-07T06:00:00+02:00' },
+          ],
+        },
+      ],
+      updatedAt: '2026-06-29T00:00:00.000Z',
+      source: 'test',
+      stale: false,
+    }
+    const map = statusBySvincoloForMapForDateKey(state, '2026-07-13')
+    expect(map.get('secondigliano')?.pozzuoli).toBe('verde')
   })
 })
