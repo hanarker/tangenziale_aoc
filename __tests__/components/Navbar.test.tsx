@@ -6,16 +6,19 @@ describe('Navbar', () => {
   it('mostra i link di navigazione principali', () => {
     render(<Navbar />)
     const nav = screen.getByRole('navigation', { name: /principale/i })
-    expect(within(nav).getByRole('link', { name: /mappa/i })).toHaveAttribute('href', '#mappa')
+    expect(within(nav).getByRole('link', { name: /mappa/i })).toHaveAttribute('href', '/#mappa')
     expect(within(nav).getByRole('link', { name: /chiusure serali/i })).toHaveAttribute(
       'href',
-      '#chiusure-serali'
+      '/#chiusure-serali'
     )
-    expect(within(nav).getByRole('link', { name: /chi sono/i })).toHaveAttribute('href', '#chi-sono')
-    expect(within(nav).getByRole('link', { name: /perché/i })).toHaveAttribute('href', '#perche')
+    expect(within(nav).getByRole('link', { name: /chi sono/i })).toHaveAttribute(
+      'href',
+      '/#chi-sono'
+    )
+    expect(within(nav).getByRole('link', { name: /perché/i })).toHaveAttribute('href', '/#perche')
     expect(within(nav).getByRole('link', { name: /cosa non mi piace/i })).toHaveAttribute(
       'href',
-      '#cosa-non-mi-piace'
+      '/#cosa-non-mi-piace'
     )
   })
 

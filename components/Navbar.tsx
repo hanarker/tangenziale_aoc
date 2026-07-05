@@ -5,11 +5,11 @@ import { ShieldLogo } from '@/components/ShieldLogo'
 import { ArrowIcon } from '@/components/ArrowIcon'
 
 const NAV_LINKS = [
-  { href: '#mappa', label: 'Mappa' },
-  { href: '#chiusure-serali', label: 'Chiusure serali' },
-  { href: '#chi-sono', label: 'Chi sono' },
-  { href: '#perche', label: 'Perché' },
-  { href: '#cosa-non-mi-piace', label: 'Cosa non mi piace' },
+  { href: '/#mappa', label: 'Mappa' },
+  { href: '/#chiusure-serali', label: 'Chiusure serali' },
+  { href: '/#chi-sono', label: 'Chi sono' },
+  { href: '/#perche', label: 'Perché' },
+  { href: '/#cosa-non-mi-piace', label: 'Cosa non mi piace' },
 ] as const
 
 function BurgerIcon({ isOpen }: { isOpen: boolean }) {
@@ -50,7 +50,7 @@ export function Navbar() {
     <div className="sticky top-0 z-40 bg-sign text-sign-foreground shadow-md">
       <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
         <a
-          href="#mappa"
+          href="/#mappa"
           className="flex items-center gap-2.5"
           onClick={() => setIsOpen(false)}
         >
