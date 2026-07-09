@@ -20,18 +20,27 @@ const barlowCondensed = Barlow_Condensed({
   variable: '--font-barlow-condensed',
 })
 
+const TITLE = 'Tangenziale di Schrödinger — Napoli, aperta o chiusa?'
+const DESCRIPTION =
+  'Lo stato in tempo reale della Tangenziale di Napoli: aperta e chiusa finché non la osservi. Uscite aperte, in lavori o chiuse per entrambe le direzioni.'
+
 export const metadata: Metadata = {
-  title: 'Tangenziale di Napoli — Aperta o Chiusa?',
-  description:
-    'Visualizza in tempo reale lo stato della Tangenziale di Napoli: uscite aperte, in lavori o chiuse per entrambe le direzioni.',
+  title: TITLE,
+  description: DESCRIPTION,
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    siteName: 'Tangenziale di Schrödinger',
+    locale: 'it_IT',
+    type: 'website',
   },
 }
 

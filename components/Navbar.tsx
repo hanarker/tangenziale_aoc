@@ -55,8 +55,8 @@ export function Navbar() {
           onClick={() => setIsOpen(false)}
         >
           <ShieldLogo width={22} height={24} variant="inverse" />
-          <span className="font-display text-lg font-bold uppercase tracking-wide leading-none">
-            Tangenziale di Napoli
+          <span className="font-display text-base sm:text-lg font-bold uppercase tracking-wide leading-none">
+            Tangenziale di Schrödinger
           </span>
         </a>
 

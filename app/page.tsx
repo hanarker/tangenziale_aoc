@@ -23,10 +23,10 @@ export default async function HomePage() {
         <ShieldLogo />
         <div>
           <h1 className="font-display text-3xl font-bold uppercase tracking-wide leading-none text-primary">
-            Tangenziale di Napoli
+            Tangenziale di Schrödinger
           </h1>
           <p className="text-muted text-sm mt-1 font-sans">
-            Stato in tempo reale delle uscite
+            La tangenziale di Napoli: aperta e chiusa finché non la osservi.
           </p>
         </div>
       </header>
@@ -42,7 +42,11 @@ export default async function HomePage() {
         <h2 className="flex items-center gap-2 mb-3 font-display text-xl font-bold uppercase tracking-wide text-foreground">
           <span
             aria-hidden="true"
-            className="inline-block w-2.5 h-2.5 rounded-full bg-green-600"
+            className="inline-block w-2.5 h-2.5 rounded-full"
+            style={{
+              background:
+                'linear-gradient(135deg, var(--status-verde) 50%, var(--status-rosso) 50%)',
+            }}
           />
           In tempo reale
         </h2>

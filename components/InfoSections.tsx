@@ -72,8 +72,8 @@ export function InfoSections() {
           Sono un cittadino, non un&apos;azienda. Ho automatizzato e reso disponibile per tutti, qualcosa che 
           ho fatto un sacco di volte. Copiavo e incollavo le informazioni ufficiali, le mettevo su ChatGPT e mi
           facevo dire se la mia uscita fosse aperta o chiusa. Poi ho pensato che avrei potuto fare di meglio.
-          Mettere online una mappa facilmente consultabile e rendere fruibile un&apos;informazione essenziale — la tangenziale è aperta o chiusa? — in
-          maniera semplice.
+          Mettere online una mappa facilmente consultabile e rendere fruibile un&apos;informazione essenziale — la tangenziale è aperta o chiusa? In fondo,
+          come il gatto di Schrödinger, è tutte e due le cose finché non la guardi: da qui il nome.
         </p>
       </SectionPanel>
 

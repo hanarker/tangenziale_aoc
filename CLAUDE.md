@@ -1,8 +1,8 @@
 @AGENTS.md
 
-# Tangenziale di Napoli — Aperta o Chiusa?
+# Tangenziale di Schrödinger
 
-Sito Next.js (App Router, Tailwind 4) che mostra in tempo reale lo stato delle uscite della Tangenziale di Napoli e le chiusure serali programmate. Fonte: scraping di tangenzialedinapoli.it, interpretato da LLM (OpenAI).
+Sito Next.js (App Router, Tailwind 4) che mostra in tempo reale lo stato delle uscite della Tangenziale di Napoli e le chiusure serali programmate: aperta e chiusa finché non la osservi. Fonte: scraping di tangenzialedinapoli.it, interpretato da LLM (OpenAI).
 
 ## Comandi utili
 - `npm run dev` - dev server su localhost:3000
