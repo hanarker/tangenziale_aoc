@@ -24,6 +24,15 @@ export const metadata: Metadata = {
   title: 'Tangenziale di Napoli — Aperta o Chiusa?',
   description:
     'Visualizza in tempo reale lo stato della Tangenziale di Napoli: uscite aperte, in lavori o chiuse per entrambe le direzioni.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({
