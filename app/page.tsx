@@ -5,7 +5,9 @@ import { Legend } from '@/components/Legend'
 import { StatusBar } from '@/components/StatusBar'
 import { EveningClosures } from '@/components/EveningClosures'
 import { InfoSections } from '@/components/InfoSections'
+import { AdSlot } from '@/components/AdSlot'
 import { ShieldLogo } from '@/components/ShieldLogo'
+import { ADS_ENABLED } from '@/lib/ads-config'
 
 // Rilegge i dati ad ogni richiesta (non cached), così il cron
 // aggiorna Redis e la pagina mostra sempre l'ultimo snapshot.
@@ -75,8 +77,14 @@ export default async function HomePage() {
       {/* Chiusure programmate per le prossime serate */}
       <EveningClosures state={state} now={now} />
 
+      {/* Banner pubblicitario (segnaposto AdSense) */}
+      {ADS_ENABLED && <AdSlot id="dopo-mappa" />}
+
       {/* Sezioni informative */}
       <InfoSections />
+
+      {/* Banner pubblicitario (segnaposto AdSense) */}
+      {ADS_ENABLED && <AdSlot id="pre-footer" />}
 
       {/* Footer */}
       <footer className="mt-8 text-center text-xs text-muted">
