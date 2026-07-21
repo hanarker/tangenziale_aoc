@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import { Barlow, Barlow_Condensed } from 'next/font/google'
 import { Navbar } from '@/components/Navbar'
 import { CookieBanner } from '@/components/CookieBanner'
@@ -67,6 +68,7 @@ export default function RootLayout({
         <Navbar />
         {children}
         <CookieBanner />
+        <Analytics />
       </body>
     </html>
   )

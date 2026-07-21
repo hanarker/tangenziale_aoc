@@ -46,6 +46,35 @@ function WarningIcon() {
   )
 }
 
+function CoffeeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+      <path
+        d="M4 9 H16 V16 C16 18.2 14.2 20 12 20 H8 C5.8 20 4 18.2 4 16 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 10 H18 C19.1 10 20 10.9 20 12 C20 13.1 19.1 14 18 14 H16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 3 C8 4.5 9.5 4.5 9.5 6 M13 3 C13 4.5 14.5 4.5 14.5 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 const CRITICITA = [
   {
     titolo: 'Quei maledetti 5 centesimi',
@@ -118,6 +147,23 @@ export function InfoSections() {
             </li>
           ))}
         </ul>
+      </SectionPanel>
+
+      <SectionPanel id="offrimi-un-caffe" titolo="Offrimi un caffè" icona={<CoffeeIcon />}>
+        <p className="text-foreground leading-relaxed">
+          Questo sito è gratuito, senza pubblicità e lo tengo online a mie spese (LLM, hosting).
+          Se ti è tornato utile e ti va di ricambiare, qui niente spiccioli di resto al casello: basta un
+          caffè.
+        </p>
+        <a
+          href="https://paypal.me/aresbertelli"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-2 rounded-[4px] bg-accent px-5 py-2.5 font-display text-base font-bold uppercase tracking-wide text-white hover:opacity-90 transition-opacity"
+        >
+          <CoffeeIcon />
+          Offrimi un caffè
+        </a>
       </SectionPanel>
     </div>
   )

@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/#chi-sono', label: 'Chi sono' },
   { href: '/#perche', label: 'Perché' },
   { href: '/#cosa-non-mi-piace', label: 'Cosa non mi piace' },
+  { href: '/#offrimi-un-caffe', label: 'Offrimi un caffè' },
 ] as const
 
 function BurgerIcon({ isOpen }: { isOpen: boolean }) {
